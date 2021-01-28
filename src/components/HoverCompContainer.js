@@ -93,7 +93,7 @@ export const useHoverComp = ref => {
   }, [ref, updateHoverData]);
 
   const onMouseLeave = React.useCallback(e => {
-    // updateHoverData({ type: SET_SHOW, show: false });
+    updateHoverData({ type: SET_SHOW, show: false });
   }, [updateHoverData]);
 
   return {
