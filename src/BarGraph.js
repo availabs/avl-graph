@@ -55,7 +55,7 @@ const HoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => (
       ))
     }
     { keys.length <= 1 ? null :
-      <div style={ { padding: "0px 1px 0px 0px" } }>
+      <div style={ { paddingRight: "1px" } }>
         <div className="flex pr-2">
           <div className="mr-4 pl-2">
             Total
