@@ -79,6 +79,7 @@ const InitialState = {
 }
 
 export const useHoverComp = ref => {
+  
   const [hoverData, dispatch] = React.useReducer(Reducer, InitialState),
     updateHoverData = React.useCallback(throttle(dispatch, 25), [dispatch]);
 

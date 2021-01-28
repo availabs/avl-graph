@@ -184,7 +184,8 @@ export const BarGraph = props => {
     });
   }, [data, keys, width, height,
       Margin, barData, colors, indexBy,
-      padding, paddingInner, paddingOuter]);
+      padding, paddingInner, paddingOuter]
+  );
 
   const {
     onMouseMove,
