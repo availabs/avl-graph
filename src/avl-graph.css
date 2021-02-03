@@ -1,18 +1,18 @@
-:root {
+.avl-graph-container {
   --graph-bg-color: #ffffff;
 }
 
 /* GRAPH STUFF */
 .avl-graph {
-  background-color: var(--graph-bg-color);
+  /* background-color: var(--graph-bg-color); */
 }
 .avl-graph rect.avl-stack {
-  transition: fill 0.15s ease-out;
-  fill-opacity: 1;
+  transition: fill-opacity 0.15s ease-out;
+  fill-opacity: 0.75;
 }
 .avl-graph rect.avl-stack:hover {
+  /* fill: currentColor; */
   fill-opacity: 1;
-  fill: currentColor;
 }
 .avl-graph .graph-line.secondary {
   stroke-dasharray: 4 4;
@@ -35,17 +35,17 @@
 
 /* HOVER COMP STUFF */
 .hover-comp {
-  background-color: var(--graph-bg-color);
+  /* background-color: var(--graph-bg-color); */
 }
 .hover-comp table.hover-table > thead > tr > th {
   padding: 1px 5px 0px 5px;
   text-align: center;
-  border-bottom: 2px solid #000;
+  /* border-bottom: 2px solid #000; */
 }
 .hover-comp table.hover-table > tbody > tr > td {
   padding: 1px 5px;
   text-align: center;
-  border-bottom: 1px solid #000;
+  /* border-bottom: 1px solid #000; */
 }
 .hover-comp table.hover-table > tbody > tr > td:first-child {
   padding: 1px 5px 1px 0px;
@@ -57,7 +57,7 @@
 }
 .hover-comp .color-square {
   transition: background-color 0.15s ease-out;
-  background: currentColor;
+  /* background: currentColor; */
 }
 .hover-comp .secondary .color-square {
   background: repeating-linear-gradient(90deg, currentColor, currentColor 2px, var(--graph-bg-color) 2px, var(--graph-bg-color) 4px);

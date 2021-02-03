@@ -32,12 +32,12 @@ const getRect = ref => {
 }
 
 export const useSetSize = ref => {
-  const [size, setSize] = React.useState([0, 0]);
+  const [size, setSize] = React.useState({ width: 0, height: 0 });
 
   const { width, height } = getRect(ref);
 
   React.useLayoutEffect(() => {
-    setSize([width, height]);
+    setSize({ width, height });
   }, [width, height]);
 
   return size;

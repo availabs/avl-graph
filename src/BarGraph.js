@@ -31,8 +31,11 @@ const InitialState = {
   adjustedHeight: 0
 }
 
-const HoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => (
-  <div className="flex flex-col px-2 py-1">
+const HoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat, theme }) => (
+  <div className={ `
+      flex flex-col px-2 py-1 rounded
+      ${ theme.accent1 }
+    ` }>
     <div className="font-bold text-lg leading-6 border-b-2 mb-1 pl-2">
       { indexFormat(get(data, "index", null)) }
     </div>
@@ -86,6 +89,8 @@ export const BarGraph = props => {
     axisLeft = null,
     hoverComp = EmptyObject,
     indexBy = "index",
+    className = "",
+    theme = EmptyObject,
     paddingInner = 0,
     paddingOuter = 0,
     padding,
@@ -101,7 +106,7 @@ export const BarGraph = props => {
   }, [margin]);
 
   const ref = React.useRef(),
-    [width, height] = useSetSize(ref),
+    { width, height } = useSetSize(ref),
     [state, setState] = React.useState(InitialState),
 
     barData = React.useRef(EmptyArray);
@@ -112,16 +117,33 @@ export const BarGraph = props => {
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    const [xDomain, yDomain] = (data).reduce((a, c) => {
-      let [xd, yd] = a;
-      if (!yd.length) {
-        yd = [0, 0];
-      }
-      let [y1, y2] = yd;
-      xd.push(c[indexBy]);
-      y2 = Math.max(y2, keys.reduce((a, k) => a + c[k], 0));
-      return [xd, [y1, y2]];
-    }, [[], []]);
+
+    const xDomain = data.map(d => d[indexBy]);
+
+    let yDomain = [];
+    if (xDomain.length) {
+      yDomain = data.reduce((a, c) => {
+        const y = keys.reduce((a, k) => a + c[k], 0);
+        if (y) {
+          return [0, Math.max(y, get(a, 1, 0))];
+        }
+        return a;
+      }, []);
+    }
+
+    // const [xDomain, yDomain] = data.reduce((a, c) => {
+    //   let [xd, yd] = a;
+    //   xd.push(c[indexBy]);
+    //   const y = keys.reduce((a, k) => a + c[k], 0);
+    //   if (yd.length) {
+    //     const [y1, y2] = yd;
+    //     return [xd, [y1, Math.max(y, y2)]];
+    //   }
+    //   if (y) {
+    //     return [xd, [0, y]];
+    //   }
+    //   return [xd, yd];
+    // }, [[], []]);
 
     const xScale = d3.scaleBand()
       .paddingInner(padding || paddingInner)
@@ -154,7 +176,7 @@ export const BarGraph = props => {
 
       const stacks = keys.map((key, ii) => {
         const value = get(d, key, 0),
-          height = yScale(value),
+          height = yScale(value) || 0,
           stack = {
             data: d,
             key,
@@ -164,7 +186,7 @@ export const BarGraph = props => {
             y: Math.max(0, adjustedHeight - current - height),
             color: colorFunc(d, ii, key),
             value
-          }
+          };
         current += height;
         return stack;
       });
@@ -205,9 +227,9 @@ export const BarGraph = props => {
   } = HoverCompData;
 
   return (
-    <div className="w-full h-full relative" ref={ ref }>
+    <div className="w-full h-full relative avl-graph-container" ref={ ref }>
 
-      <svg className="w-full h-full block avl-graph">
+      <svg className={ `w-full h-full block avl-graph ${ className }` }>
         <g style={ { transform: `translate(${ Margin.left }px, ${ Margin.top }px)` } }
           onMouseLeave={ onMouseLeave }>
           { barData.current.map(({ id, ...stateRest }) =>
@@ -243,7 +265,7 @@ export const BarGraph = props => {
         svgHeight={ height }
         margin={ Margin }>
         { !hoverData.data ? null :
-          <HoverComp data={ hoverData.data } keys={ keys }
+          <HoverComp data={ hoverData.data } keys={ keys } theme={ theme }
             { ...hoverCompRest }/>
         }
       </HoverCompContainer>
@@ -334,9 +356,6 @@ const Bar = ({ stacks, left, state, ...props }) => {
 export const generateTestBarData = (bars = 50, stacks = 5) => {
   const data = [], keys = [];
 
-  const magnitude = (Math.random() * 500 + 250) / stacks,
-    shift = magnitude * .25;
-
   d3.range(stacks).forEach(s => {
     keys.push(`stack-${ s }`);
   });
@@ -346,7 +365,8 @@ export const generateTestBarData = (bars = 50, stacks = 5) => {
       index: `bar-${ b }`
     }
     keys.forEach(k => {
-      bar[k] = magnitude + (Math.random() * shift) - shift * 2;
+      const rand = Math.random() * 250 + 50;
+      bar[k] = rand + (Math.random() * rand);
     })
     data.push(bar);
   });
