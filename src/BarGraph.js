@@ -82,9 +82,9 @@ export const BarGraph = props => {
     data = EmptyArray,
     keys = EmptyArray,
     margin = EmptyObject,
+    hoverComp = EmptyObject,
     axisBottom = null,
     axisLeft = null,
-    hoverComp = EmptyObject,
     indexBy = "index",
     paddingInner = 0,
     paddingOuter = 0,
@@ -92,13 +92,13 @@ export const BarGraph = props => {
     colors
   } = props;
 
-  const HoverCompData = React.useMemo(() => {
-    return { ...DefaultHoverCompData, ...hoverComp };
-  }, [hoverComp])
-
   const Margin = React.useMemo(() => {
     return { ...DefaultMargin, ...margin };
   }, [margin]);
+
+  const HoverCompData = React.useMemo(() => {
+    return { ...DefaultHoverCompData, ...hoverComp };
+  }, [hoverComp]);
 
   const ref = React.useRef(),
     [width, height] = useSetSize(ref),
