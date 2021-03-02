@@ -142,6 +142,7 @@ const renderAxisLeft = (ref,
           .attr("stroke", "currentColor")
           // .attr("stroke-opacity", 0.5)
           .transition(transition)
+            .attr("x2", adjustedWidth)
             .attr("y1", d => Scale(d) + 0.5)
             .attr("y2", d => Scale(d) + 0.5)
         ),

@@ -1,2 +1,2 @@
 export * from "./BarGraph"
-export * from "./utils/color-ranges"
+export * from "./LineGraph"
