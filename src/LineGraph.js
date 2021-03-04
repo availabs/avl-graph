@@ -226,7 +226,9 @@ export const LineGraph = props => {
           c.isMax = false;
           return c.y > a.y ? { y: c.y, i } : a;
         }, { y: 0, i: -1 });
-      col[i].isMax = true;
+      if (i > -1) {
+        col[i].isMax = true;
+      }
     }
 
     const step = xScale.step(),
@@ -325,7 +327,7 @@ export const LineGraph = props => {
 }
 export default LineGraph;
 
-const Line = ({ line, baseLine, state, color }) => {
+const Line = React.memo(({ line, baseLine, state, color }) => {
 
   const ref = React.useRef();
 
@@ -355,9 +357,9 @@ const Line = ({ line, baseLine, state, color }) => {
       <path ref={ ref } fill="none" strokeWidth="4"/>
     </g>
   )
-}
+})
 
-const InteractiveBar = ({ id, left, data, height, width, onMouseMove }) => {
+const InteractiveBar = React.memo(({ id, left, data, height, width, onMouseMove }) => {
 
   const _onMouseMove = React.useCallback(e => {
     onMouseMove(e, { x: id, data });
@@ -368,4 +370,4 @@ const InteractiveBar = ({ id, left, data, height, width, onMouseMove }) => {
       x={ left } y={ 0 } width={ width } height={ height }
       onMouseMove={ _onMouseMove }/>
   )
-}
+})

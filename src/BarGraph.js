@@ -288,7 +288,7 @@ export const BarGraph = props => {
   )
 }
 
-const Stack = props => {
+const Stack = React.memo(props => {
 
   const {
     state,
@@ -338,9 +338,9 @@ const Stack = props => {
     <rect className="avl-stack" ref={ ref }
       onMouseMove={ _onMouseMove }/>
   )
-}
+})
 
-const Bar = ({ stacks, left, state, ...props }) => {
+const Bar = React.memo(({ stacks, left, state, ...props }) => {
 
   const ref = React.useRef();
 
@@ -365,7 +365,7 @@ const Bar = ({ stacks, left, state, ...props }) => {
       }
     </g>
   )
-}
+})
 
 export const generateTestBarData = (bars = 50, stacks = 5) => {
   const data = [], keys = [];
