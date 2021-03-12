@@ -101,7 +101,8 @@ export const BarGraph = props => {
     paddingInner = 0,
     paddingOuter = 0,
     padding,
-    colors
+    colors,
+    groupMode = "stacked"
   } = props;
 
   const HoverCompData = React.useMemo(() => {
@@ -128,13 +129,24 @@ export const BarGraph = props => {
 
     let yDomain = [];
     if (xDomain.length) {
-      yDomain = data.reduce((a, c) => {
-        const y = keys.reduce((a, k) => a + c[k], 0);
-        if (y) {
-          return [0, Math.max(y, get(a, 1, 0))];
-        }
-        return a;
-      }, []);
+      if (groupMode === "stacked") {
+        yDomain = data.reduce((a, c) => {
+          const y = keys.reduce((a, k) => a + c[k], 0);
+          if (y) {
+            return [0, Math.max(y, get(a, 1, 0))];
+          }
+          return a;
+        }, []);
+      }
+      else if (groupMode === "grouped") {
+        yDomain = data.reduce((a, c) => {
+          const y = keys.reduce((a, k) => Math.max(a, c[k]), 0);
+          if (y) {
+            return [0, Math.max(y, get(a, 1, 0))];
+          }
+          return a;
+        }, []);
+      }
     }
 
     // const [xDomain, yDomain] = data.reduce((a, c) => {
@@ -176,42 +188,79 @@ export const BarGraph = props => {
     }, [{}, {}]);
 
     barData.current = data.map((d, i) => {
-      let current = 0;
 
       delete exiting[d[indexBy]];
 
       const barValues = {};
 
-      const stacks = keys.map((key, ii) => {
-        const value = get(d, key, 0),
-          height = yScale(value) || 0,
-          color = colorFunc(d, ii, key);
+      if (groupMode === "stacked") {
+        let current = 0;
 
-        barValues[key] = { value, color };
+        const stacks = keys.map((key, ii) => {
+          const value = get(d, key, 0),
+            height = yScale(value) || 0,
+            color = colorFunc(d, ii, key);
 
-        const stack = {
-            data: d,
-            key,
-            width: bandwidth,
-            height,
-            index: d[indexBy],
-            y: Math.max(0, adjustedHeight - current - height),
-            color,
-            value,
-            barValues
-          };
-        current += height;
-        return stack;
-      });
+          barValues[key] = { value, color };
 
-      return {
-        stacks,
-        barValues,
-        left: outer + i * step,
-        data: d,
-        state: get(updating, d[indexBy], "entering"),
-        id: d[indexBy].toString()
-      };
+          const stack = {
+              data: d,
+              key,
+              width: bandwidth,
+              height,
+              index: d[indexBy],
+              y: Math.max(0, adjustedHeight - current - height),
+              x: 0,
+              color,
+              value,
+              barValues
+            };
+          current += height;
+          return stack;
+        });
+
+        return {
+          stacks,
+          barValues,
+          left: outer + i * step,
+          data: d,
+          state: get(updating, d[indexBy], "entering"),
+          id: d[indexBy].toString()
+        };
+      }
+      else if (groupMode === "grouped") {
+        const stacks = keys.slice().reverse()
+          .map((key, ii) => {
+            const value = get(d, key, 0),
+              height = yScale(value) || 0,
+              color = colorFunc(d, ii, key);
+
+            barValues[key] = { value, color };
+
+            const stack = {
+                data: d,
+                key,
+                width: bandwidth / keys.length,
+                height,
+                index: d[indexBy],
+                y: Math.max(0, adjustedHeight - height),
+                x: (bandwidth / keys.length) * ii,
+                color,
+                value,
+                barValues
+              };
+            return stack;
+          });
+
+        return {
+          stacks,
+          barValues,
+          left: outer + i * step,
+          data: d,
+          state: get(updating, d[indexBy], "entering"),
+          id: d[indexBy].toString()
+        };
+      }
     }).concat(Object.values(exiting));
 
     setState({
@@ -296,6 +345,7 @@ const Stack = React.memo(props => {
     svgHeight,
     height,
     y,
+    x,
     color,
     onMouseMove,
     Key, index, value, data, barValues
@@ -308,9 +358,11 @@ const Stack = React.memo(props => {
       d3.select(ref.current)
         .attr("width", width)
         .attr("height", 0)
+        .attr("x", x)
         .attr("y", svgHeight)
         .transition().duration(1000)
         .attr("height", height)
+        .attr("x", x)
         .attr("y", y)
         .attr("fill", color);
     }
@@ -324,6 +376,7 @@ const Stack = React.memo(props => {
       d3.select(ref.current)
         .transition().duration(1000)
         .attr("height", height)
+        .attr("x", x)
         .attr("y", y)
         .attr("width", width)
         .attr("fill", color);
