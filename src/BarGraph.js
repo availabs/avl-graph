@@ -261,13 +261,14 @@ export const BarGraph = props => {
           id: d[indexBy].toString()
         };
       }
+      return { stacks: [] }
     }).concat(Object.values(exiting));
 
     setState({
       xDomain, yDomain, xScale, yScale,
       adjustedWidth, adjustedHeight
     });
-  }, [data, keys, width, height,
+  }, [data, keys, width, height, groupMode,
       Margin, barData, colors, indexBy,
       padding, paddingInner, paddingOuter]
   );
@@ -381,7 +382,7 @@ const Stack = React.memo(props => {
         .attr("width", width)
         .attr("fill", color);
     }
-  }, [ref, state, width, svgHeight, height, y, color]);
+  }, [ref, state, width, svgHeight, height, x, y, color]);
 
   const _onMouseMove = React.useCallback(e => {
     onMouseMove(e, { color, key: Key, index, value, data, barValues });
