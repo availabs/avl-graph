@@ -4,9 +4,7 @@ import * as d3 from "d3"
 
 import get from "lodash.get"
 
-import { useTheme } from "@availabs/avl-components"
-
-import { useSetSize } from "avl-components"
+import { useTheme, useSetSize } from "@availabs/avl-components"
 
 import {
   AxisBottom,

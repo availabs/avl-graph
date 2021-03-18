@@ -1,4 +1,4 @@
-import { getColorRange } from "avl-components"
+import { getColorRange } from "@availabs/avl-components"
 
 const DEFAULT_COLORS = getColorRange(12, "Set3");
 
