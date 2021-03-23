@@ -2,8 +2,6 @@ import React from "react"
 
 import throttle from "lodash.throttle"
 
-import { useSetSize } from "../utils"
-
 const getTranslate = ({ pos, svgWidth, svgHeight, margin, position }) => {
   const gap = 20;
 
@@ -79,7 +77,7 @@ const InitialState = {
 }
 
 export const useHoverComp = ref => {
-  
+
   const [hoverData, dispatch] = React.useReducer(Reducer, InitialState),
     updateHoverData = React.useCallback(throttle(dispatch, 25), [dispatch]);
 
