@@ -2,8 +2,6 @@ import React from "react"
 
 import throttle from "lodash.throttle"
 
-import { useSetSize } from "../utils"
-
 const getTranslate = ({ pos, svgWidth, svgHeight, margin, position }) => {
   const gap = 20;
 
