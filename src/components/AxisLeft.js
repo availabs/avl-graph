@@ -6,7 +6,7 @@ export const AxisLeft = props => {
   const {
     adjustedWidth, adjustedHeight,
     domain, scale, format,
-    secondary, label, margin
+    secondary, label, margin, ticks = 10
   } = props;
 
   const ref = React.useRef();
@@ -16,12 +16,12 @@ export const AxisLeft = props => {
       renderAxisLeft(ref.current,
         adjustedWidth, adjustedHeight,
         domain, scale, format,
-        secondary, label, margin
+        secondary, label, margin, ticks
       );
     }
   }, [adjustedWidth, adjustedHeight,
       domain, scale, format,
-      secondary, label, margin]
+      secondary, label, margin, ticks]
   );
 
   return <g ref={ ref }/>;
@@ -32,7 +32,7 @@ const renderAxisLeft = (ref,
                     adjustedHeight,
                     domain, scale, format,
                     secondary, label,
-                    margin) => {
+                    margin, ticks) => {
 
   const { left, top } = margin;
 
@@ -41,14 +41,34 @@ const renderAxisLeft = (ref,
     .range(scale.range().slice().reverse());
 
   const axisLeft = d3.axisLeft(Scale)
-    .tickFormat(format);
+    .tickFormat(format)
+    .ticks(ticks);
 
   const transition = d3.transition().duration(1000);
 
-  const reactGroup = d3.select(ref)
-    .style("transform", `translate(${ left }px, ${ top }px)`);
+  const animatedGroup = d3.select(ref)
+    .selectAll("g.animated-group")
+    .data(["animated-group"])
+    .join(
+      enter => enter.append("g")
+        .attr("class", "animated-group")
+        .call(enter =>
+          enter.style("transform", `translate(${ left }px, ${ top }px)`)
+        ),
+      update => update
+        .call(
+          update => update.transition(transition)
+            .style("transform", `translate(${ left }px, ${ top }px)`)
+        ),
+      exit => exit
+        .call(exit =>
+          exit.transition(transition)
+            .style("transform", `translate(${ left }px, ${ top }px)`)
+          .remove()
+        )
+    );
 
-  const group = reactGroup.selectAll("g.axis-group")
+  const group = animatedGroup.selectAll("g.axis-group")
     .data(domain.length ? ["axis-group"] : [])
       .join(
         enter => enter.append("g")
@@ -59,7 +79,11 @@ const renderAxisLeft = (ref,
               .transition(transition)
                 .style("transform", "translateY(0px) scale(1, 1)")
           ),
-        update => update,
+        update => update
+          .call(update =>
+            update.transition(transition)
+              .style("transform", "translateY(0px) scale(1, 1)")
+          ),
         exit => exit
           .call(exit =>
             exit.transition(transition)
@@ -84,7 +108,7 @@ const renderAxisLeft = (ref,
         `translate(${ -left + 20 }px, ${ adjustedHeight * 0.5 }px) rotate(-90deg)`
       )
       .attr("text-anchor", "middle")
-      .attr("fill", "#000")
+      .attr("fill", "currentColor")
       .attr("font-size", "1rem")
       .text(d => d);
 
@@ -92,8 +116,10 @@ const renderAxisLeft = (ref,
     numGridLines = gridLines.size(),
     numTicks = Scale.ticks().length,
 
-    from = numGridLines && (numGridLines < numTicks) ?
-      Scale(domain[1] * 1.5) : Scale(0);
+    gridEnter = numGridLines && (numGridLines < numTicks) ?
+      Scale(domain[1] * 1.5) : Scale(0),
+
+    gridExit = Scale(domain[1] * 1.5);
 
   gridLines
     .data(domain.length ? Scale.ticks() : [])
@@ -102,10 +128,10 @@ const renderAxisLeft = (ref,
         .attr("class", "grid-line")
         .attr("x1", 0)
         .attr("x2", adjustedWidth)
-        .attr("y1", from)
-        .attr("y2", from)
-        .attr("stroke", "#000")
-        .attr("stroke-opacity", 0.25)
+        .attr("y1", gridEnter)
+        .attr("y2", gridEnter)
+        .attr("stroke", "currentColor")
+        // .attr("stroke-opacity", 0.5)
           .call(enter => enter
             .transition(transition)
               .attr("y1", d => Scale(d) + 0.5)
@@ -113,15 +139,18 @@ const renderAxisLeft = (ref,
           ),
       update => update
         .call(update => update
+          .attr("stroke", "currentColor")
+          // .attr("stroke-opacity", 0.5)
           .transition(transition)
+            .attr("x2", adjustedWidth)
             .attr("y1", d => Scale(d) + 0.5)
             .attr("y2", d => Scale(d) + 0.5)
         ),
       exit => exit
         .call(exit => exit
           .transition(transition)
-            .attr("y1", Scale(domain[1] * 1.5))
-            .attr("y2", Scale(domain[1] * 1.5))
+            .attr("y1", gridExit)
+            .attr("y2", gridExit)
           .remove()
         )
     );

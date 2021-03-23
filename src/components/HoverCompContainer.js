@@ -3,26 +3,25 @@ import React from "react"
 import throttle from "lodash.throttle"
 
 const getTranslate = ({ pos, svgWidth, svgHeight, margin, position }) => {
-  const gap = 20;
+
+  const gap = 30, padding = 10, [x, y] = pos;
 
   switch (position) {
     case "above": {
-      const [x, y] = pos,
-        maxX = svgWidth - margin.right;
+      const xMax = svgWidth - margin.right;
       return `translate(
         max(
-          min(calc(${ x }px - 50%), calc(${ maxX - gap }px - 100%)),
-          calc(${ margin.left + gap }px)
+          min(calc(${ x }px - 50%), calc(${ xMax - padding }px - 100%)),
+          calc(${ margin.left + padding }px)
         ),
         calc(-100% - ${ gap - y }px)
       )`;
     }
     default: {
-      const [x, y] = pos,
-        maxX = svgHeight - margin.bottom,
+      const yMax = svgHeight - margin.bottom,
         yTrans = `max(
-          ${ margin.top + gap }px,
-          min(${ y - gap }px, ${ maxX - gap }px - 100%)
+          ${ margin.top + padding }px,
+          min(${ y - gap }px, calc(${ yMax - padding }px - 100%))
         )`;
       if (x < margin.left + (svgWidth - margin.left - margin.right) * 0.5) {
         return `translate(
@@ -79,7 +78,7 @@ const InitialState = {
 export const useHoverComp = ref => {
 
   const [hoverData, dispatch] = React.useReducer(Reducer, InitialState),
-    updateHoverData = React.useCallback(throttle(dispatch, 25), [dispatch]);
+    updateHoverData = React.useMemo(() => throttle(dispatch, 25), [dispatch]);
 
   const onMouseMove = React.useCallback((e, data) => {
     const rect = ref.current.getBoundingClientRect();

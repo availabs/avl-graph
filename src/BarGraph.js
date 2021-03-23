@@ -4,6 +4,8 @@ import * as d3 from "d3"
 
 import get from "lodash.get"
 
+import { useTheme, useSetSize } from "@availabs/avl-components"
+
 import {
   AxisBottom,
   AxisLeft,
@@ -13,7 +15,6 @@ import {
 
 import {
   getColorFunc,
-  useSetSize,
   Identity,
   EmptyArray,
   EmptyObject,
@@ -22,6 +23,58 @@ import {
 
 import "./avl-graph.css"
 
+const HoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => {
+  const theme = useTheme();
+  return (
+    <div className={ `
+        flex flex-col px-2 py-1 rounded
+        ${ theme.accent1 }
+      ` }>
+      <div className="font-bold text-lg leading-6 border-b-2 mb-1 pl-2">
+        { indexFormat(get(data, "index", null)) }
+      </div>
+      { keys.slice().reverse().map(key => (
+          <div key={ key } className={ `
+            flex items-center px-2 border rounded transition
+            ${ data.key === key ? "border-current" : "border-transparent" }
+          `}>
+            <div className="mr-2 rounded-sm color-square w-5 h-5"
+              style={ {
+                backgroundColor: get(data, ["barValues", key, "color"], null),
+                opacity: data.key === key ? 1 : 0.2
+              } }/>
+            <div className="mr-4">
+              { keyFormat(key) }:
+            </div>
+            <div className="text-right flex-1">
+              { valueFormat(data.data[key]) }
+            </div>
+          </div>
+        ))
+      }
+      { keys.length <= 1 ? null :
+        <div style={ { paddingRight: "1px" } }>
+          <div className="flex pr-2">
+            <div className="mr-4 pl-2">
+              Total
+            </div>
+            <div className="flex-1 text-right">
+              {  valueFormat(keys.reduce((a, c) => a + data.data[c], 0)) }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  )
+}
+const DefaultHoverCompData = {
+  HoverComp,
+  indexFormat: Identity,
+  keyFormat: Identity,
+  valueFormat: Identity,
+  position: "side"
+}
+
 const InitialState = {
   xDomain: [],
   yDomain: [],
@@ -29,51 +82,6 @@ const InitialState = {
   yScale: null,
   adjustedWidth: 0,
   adjustedHeight: 0
-}
-
-const HoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => (
-  <div className="flex flex-col px-2 py-1">
-    <div className="font-bold text-lg leading-6 border-b-2 mb-1 pl-2">
-      { indexFormat(get(data, "index", null)) }
-    </div>
-    { keys.slice().reverse().map(key => (
-        <div key={ key } className={ `
-          flex items-center px-2 border rounded transition
-          ${ data.key === key ? "border-current" : "border-transparent" }
-        `}>
-          <div className="mr-2 rounded-sm color-square w-5 h-5"
-            style={ {
-              backgroundColor: data.key === key ? get(data, "color", null) : "transparent"
-            } }/>
-          <div className="mr-4">
-            { keyFormat(key) }:
-          </div>
-          <div className="text-right flex-1">
-            { valueFormat(data.data[key]) }
-          </div>
-        </div>
-      ))
-    }
-    { keys.length <= 1 ? null :
-      <div style={ { paddingRight: "1px" } }>
-        <div className="flex pr-2">
-          <div className="mr-4 pl-2">
-            Total
-          </div>
-          <div className="flex-1 text-right">
-            {  valueFormat(keys.reduce((a, c) => a + data.data[c], 0)) }
-          </div>
-        </div>
-      </div>
-    }
-  </div>
-)
-const DefaultHoverCompData = {
-  HoverComp,
-  indexFormat: Identity,
-  keyFormat: Identity,
-  valueFormat: Identity,
-  position: "side"
 }
 
 export const BarGraph = props => {
@@ -86,10 +94,13 @@ export const BarGraph = props => {
     axisBottom = null,
     axisLeft = null,
     indexBy = "index",
+    className = "",
+    theme = EmptyObject,
     paddingInner = 0,
     paddingOuter = 0,
     padding,
-    colors
+    colors,
+    groupMode = "stacked"
   } = props;
 
   const Margin = React.useMemo(() => {
@@ -101,7 +112,7 @@ export const BarGraph = props => {
   }, [hoverComp]);
 
   const ref = React.useRef(),
-    [width, height] = useSetSize(ref),
+    { width, height } = useSetSize(ref),
     [state, setState] = React.useState(InitialState),
 
     barData = React.useRef(EmptyArray);
@@ -112,16 +123,43 @@ export const BarGraph = props => {
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    const [xDomain, yDomain] = (data).reduce((a, c) => {
-      let [xd, yd] = a;
-      if (!yd.length) {
-        yd = [0, 0];
+    const xDomain = data.map(d => d[indexBy]);
+
+    let yDomain = [];
+    if (xDomain.length) {
+      if (groupMode === "stacked") {
+        yDomain = data.reduce((a, c) => {
+          const y = keys.reduce((a, k) => a + c[k], 0);
+          if (y) {
+            return [0, Math.max(y, get(a, 1, 0))];
+          }
+          return a;
+        }, []);
       }
-      let [y1, y2] = yd;
-      xd.push(c[indexBy]);
-      y2 = Math.max(y2, keys.reduce((a, k) => a + c[k], 0));
-      return [xd, [y1, y2]];
-    }, [[], []]);
+      else if (groupMode === "grouped") {
+        yDomain = data.reduce((a, c) => {
+          const y = keys.reduce((a, k) => Math.max(a, c[k]), 0);
+          if (y) {
+            return [0, Math.max(y, get(a, 1, 0))];
+          }
+          return a;
+        }, []);
+      }
+    }
+
+    // const [xDomain, yDomain] = data.reduce((a, c) => {
+    //   let [xd, yd] = a;
+    //   xd.push(c[indexBy]);
+    //   const y = keys.reduce((a, k) => a + c[k], 0);
+    //   if (yd.length) {
+    //     const [y1, y2] = yd;
+    //     return [xd, [y1, Math.max(y, y2)]];
+    //   }
+    //   if (y) {
+    //     return [xd, [0, y]];
+    //   }
+    //   return [xd, yd];
+    // }, [[], []]);
 
     const xScale = d3.scaleBand()
       .paddingInner(padding || paddingInner)
@@ -148,41 +186,87 @@ export const BarGraph = props => {
     }, [{}, {}]);
 
     barData.current = data.map((d, i) => {
-      let current = 0;
 
       delete exiting[d[indexBy]];
 
-      const stacks = keys.map((key, ii) => {
-        const value = get(d, key, 0),
-          height = yScale(value),
-          stack = {
-            data: d,
-            key,
-            width: bandwidth,
-            height,
-            index: d[indexBy],
-            y: Math.max(0, adjustedHeight - current - height),
-            color: colorFunc(d, ii, key),
-            value
-          }
-        current += height;
-        return stack;
-      });
+      const barValues = {};
 
-      return {
-        stacks,
-        left: outer + i * step,
-        data: d,
-        state: get(updating, d[indexBy], "entering"),
-        id: d[indexBy].toString()
-      };
+      if (groupMode === "stacked") {
+        let current = 0;
+
+        const stacks = keys.map((key, ii) => {
+          const value = get(d, key, 0),
+            height = yScale(value) || 0,
+            color = colorFunc(d, ii, key);
+
+          barValues[key] = { value, color };
+
+          const stack = {
+              data: d,
+              key,
+              width: bandwidth,
+              height,
+              index: d[indexBy],
+              y: Math.max(0, adjustedHeight - current - height),
+              x: 0,
+              color,
+              value,
+              barValues
+            };
+          current += height;
+          return stack;
+        });
+
+        return {
+          stacks,
+          barValues,
+          left: outer + i * step,
+          data: d,
+          state: get(updating, d[indexBy], "entering"),
+          id: d[indexBy].toString()
+        };
+      }
+      else if (groupMode === "grouped") {
+        const stacks = keys.slice().reverse()
+          .map((key, ii) => {
+            const value = get(d, key, 0),
+              height = yScale(value) || 0,
+              color = colorFunc(d, ii, key);
+
+            barValues[key] = { value, color };
+
+            const stack = {
+                data: d,
+                key,
+                width: bandwidth / keys.length,
+                height,
+                index: d[indexBy],
+                y: Math.max(0, adjustedHeight - height),
+                x: (bandwidth / keys.length) * ii,
+                color,
+                value,
+                barValues
+              };
+            return stack;
+          });
+
+        return {
+          stacks,
+          barValues,
+          left: outer + i * step,
+          data: d,
+          state: get(updating, d[indexBy], "entering"),
+          id: d[indexBy].toString()
+        };
+      }
+      return { stacks: [] }
     }).concat(Object.values(exiting));
 
     setState({
       xDomain, yDomain, xScale, yScale,
       adjustedWidth, adjustedHeight
     });
-  }, [data, keys, width, height,
+  }, [data, keys, width, height, groupMode,
       Margin, barData, colors, indexBy,
       padding, paddingInner, paddingOuter]
   );
@@ -205,13 +289,13 @@ export const BarGraph = props => {
   } = HoverCompData;
 
   return (
-    <div className="w-full h-full relative" ref={ ref }>
+    <div className="w-full h-full relative avl-graph-container" ref={ ref }>
 
-      <svg className="w-full h-full block avl-graph">
+      <svg className={ `w-full h-full block avl-graph ${ className }` }>
         <g style={ { transform: `translate(${ Margin.left }px, ${ Margin.top }px)` } }
           onMouseLeave={ onMouseLeave }>
-          { barData.current.map(({ id, ...stateRest }) =>
-              <Bar key={ id } { ...stateRest }
+          { barData.current.map(({ id, ...rest }) =>
+              <Bar key={ id } { ...rest }
                 svgHeight={ state.adjustedHeight }
                 onMouseMove={ onMouseMove }/>
             )
@@ -243,7 +327,7 @@ export const BarGraph = props => {
         svgHeight={ height }
         margin={ Margin }>
         { !hoverData.data ? null :
-          <HoverComp data={ hoverData.data } keys={ keys }
+          <HoverComp data={ hoverData.data } keys={ keys } theme={ theme }
             { ...hoverCompRest }/>
         }
       </HoverCompContainer>
@@ -252,7 +336,7 @@ export const BarGraph = props => {
   )
 }
 
-const Stack = props => {
+const Stack = React.memo(props => {
 
   const {
     state,
@@ -260,9 +344,10 @@ const Stack = props => {
     svgHeight,
     height,
     y,
+    x,
     color,
     onMouseMove,
-    Key, index, value, data
+    Key, index, value, data, barValues
   } = props;
 
   const ref = React.useRef();
@@ -272,9 +357,11 @@ const Stack = props => {
       d3.select(ref.current)
         .attr("width", width)
         .attr("height", 0)
+        .attr("x", x)
         .attr("y", svgHeight)
         .transition().duration(1000)
         .attr("height", height)
+        .attr("x", x)
         .attr("y", y)
         .attr("fill", color);
     }
@@ -288,23 +375,24 @@ const Stack = props => {
       d3.select(ref.current)
         .transition().duration(1000)
         .attr("height", height)
+        .attr("x", x)
         .attr("y", y)
         .attr("width", width)
         .attr("fill", color);
     }
-  }, [ref, state, width, svgHeight, height, y, color]);
+  }, [ref, state, width, svgHeight, height, x, y, color]);
 
   const _onMouseMove = React.useCallback(e => {
-    onMouseMove(e, { color, key: Key, index, value, data });
-  }, [onMouseMove, color, Key, index, value, data]);
+    onMouseMove(e, { color, key: Key, index, value, data, barValues });
+  }, [onMouseMove, color, Key, index, value, data, barValues]);
 
   return (
     <rect className="avl-stack" ref={ ref }
       onMouseMove={ _onMouseMove }/>
   )
-}
+})
 
-const Bar = ({ stacks, left, state, ...props }) => {
+const Bar = React.memo(({ stacks, left, state, ...props }) => {
 
   const ref = React.useRef();
 
@@ -329,13 +417,10 @@ const Bar = ({ stacks, left, state, ...props }) => {
       }
     </g>
   )
-}
+})
 
 export const generateTestBarData = (bars = 50, stacks = 5) => {
   const data = [], keys = [];
-
-  const magnitude = (Math.random() * 500 + 250) / stacks,
-    shift = magnitude * .25;
 
   d3.range(stacks).forEach(s => {
     keys.push(`stack-${ s }`);
@@ -346,7 +431,8 @@ export const generateTestBarData = (bars = 50, stacks = 5) => {
       index: `bar-${ b }`
     }
     keys.forEach(k => {
-      bar[k] = magnitude + (Math.random() * shift) - shift * 2;
+      const rand = Math.random() * 250 + 50;
+      bar[k] = rand + (Math.random() * rand);
     })
     data.push(bar);
   });
