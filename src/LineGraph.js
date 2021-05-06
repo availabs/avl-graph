@@ -1,6 +1,10 @@
 import React from "react"
 
-import * as d3 from "d3"
+import { scalePoint, scaleLinear } from "d3-scale"
+import { select as d3select } from "d3-selection"
+import { line as d3line, curveCatmullRom } from "d3-shape"
+import { range as d3range } from "d3-array"
+import { format as d3format } from "d3-format"
 
 import get from "lodash.get"
 
@@ -9,6 +13,7 @@ import { useTheme, useSetSize } from "@availabs/avl-components"
 import {
   AxisBottom,
   AxisLeft,
+  AxisRight,
   HoverCompContainer,
   useHoverComp
 } from "./components"
@@ -20,8 +25,6 @@ import {
   EmptyObject,
   DefaultMargin
 } from "./utils"
-
-import "./avl-graph.css"
 
 const HoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals }) => {
   const theme = useTheme();
@@ -40,46 +43,112 @@ const HoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals }) => {
       </div>
       <div className="table px-2 border-collapse">
         { data.data.sort((a, b) => lineTotals[b.id] - lineTotals[a.id])
-          .map(({ id, y, color, isMax, ...rest }) => (
-            <div key={ id } className={ `
-              table-row
-            ` }>
-              <div className="table-cell align-middle">
-                <div className={ `
-                  flex items-center rounded-l border-t-2 border-l-2 border-b-2
-                  ${ isMax ? "border-current" : "border-transparent" }
-                  transition pl-2
-                ` }>
+            .map(({ id, y, color, isMax, ...rest }) => (
+              <div key={ id } className={ `
+                table-row
+              ` }>
+                <div className="table-cell align-middle">
                   <div className={ `
-                    mr-2 rounded-sm color-square w-5 h-5 transition border-2
-                  ` }
-                    style={ {
-                      backgroundColor: `${ color }${ isMax ? "ff" : "33" }`,
-                      borderColor: color
-                    } }/>
-                  <div className="mr-4">
-                    { idFormat(id, rest) }:
+                    flex items-center rounded-l border-t-2 border-l-2 border-b-2
+                    ${ isMax ? "border-current" : "border-transparent" }
+                    transition pl-2
+                  ` }>
+                    <div className={ `
+                      mr-2 rounded-sm color-square w-5 h-5 transition border-2
+                    ` }
+                      style={ {
+                        borderColor: color,
+                        borderStyle: "solid",
+                        background: `${ color }${ isMax ? "ff" : "33" }`
+                      } }/>
+                    <div className="mr-4">
+                      { idFormat(id, rest) }:
+                    </div>
+                  </div>
+                </div>
+                <div className="table-cell align-middle">
+                  <div className={ `
+                    text-right pr-4 transition border-t-2 border-b-2
+                    ${ isMax ? "border-current" : "border-transparent" }
+                  ` }>
+                    { yFormat(y, rest) }
+                  </div>
+                </div>
+                <div className="table-cell align-middle">
+                  <div className={ `
+                    text-right rounded-tr transition rounded-r border-t-2 border-b-2 border-r-2
+                    ${ isMax ? "border-current" : "border-transparent" } pr-2
+                  ` }>
+                    ({ yFormat(lineTotals[id], rest) })
                   </div>
                 </div>
               </div>
-              <div className="table-cell align-middle">
-                <div className={ `
-                  text-right pr-4 transition border-t-2 border-b-2
-                  ${ isMax ? "border-current" : "border-transparent" }
-                ` }>
-                  { yFormat(y, rest) }
-                </div>
-              </div>
-              <div className="table-cell align-middle">
-                <div className={ `
-                  text-right rounded-tr transition rounded-r border-t-2 border-b-2 border-r-2
-                  ${ isMax ? "border-current" : "border-transparent" } pr-2
-                ` }>
-                  ({ yFormat(lineTotals[id], rest) })
-                </div>
-              </div>
+            ))
+        }
+        { !data.secondary.length ? null :
+          <>
+            <div className="table-row">
+              <div className="table-cell border-b-2 pt-1"/>
+              <div className="table-cell border-b-2 pt-1"/>
+              <div className="table-cell border-b-2 pt-1"/>
             </div>
-          ))
+            <div className="table-row">
+              <div className="table-cell border-t-2 pb-1"/>
+              <div className="table-cell border-t-2 pb-1"/>
+              <div className="table-cell border-t-2 pb-1"/>
+            </div>
+          </>
+        }
+        { data.secondary.sort((a, b) => lineTotals[b.id] - lineTotals[a.id])
+            .map(({ id, y, color, isMax, ...rest }) => (
+              <div key={ id } className={ `
+                table-row
+              ` }>
+                <div className="table-cell align-middle">
+                  <div className={ `
+                    flex items-center rounded-l border-t-2 border-l-2 border-b-2
+                    ${ isMax ? "border-current" : "border-transparent" }
+                    transition pl-2 border-dashed
+                  ` }>
+                    <div className={ `
+                      mr-2 rounded-sm color-square w-5 h-5 transition border-2
+                    ` }
+                      style={ {
+                        borderColor: color,
+                        borderStyle: "dashed",
+                        background: `
+                          repeating-linear-gradient(
+                            -45deg,
+                            ${ color }${ isMax ? "ff" : "33" } 2px,
+                            ${ color }${ isMax ? "ff" : "33" } 4px,
+                            transparent 4px,
+                            transparent 6px
+                          )
+                        `
+                      } }/>
+                    <div className="mr-4">
+                      { idFormat(id, rest) }:
+                    </div>
+                  </div>
+                </div>
+                <div className="table-cell align-middle">
+                  <div className={ `
+                    text-right pr-4 transition border-t-2 border-b-2 border-dashed
+                    ${ isMax ? "border-current" : "border-transparent" }
+                  ` }>
+                    { yFormat(y, rest) }
+                  </div>
+                </div>
+                <div className="table-cell align-middle">
+                  <div className={ `
+                    text-right rounded-tr transition rounded-r border-t-2 border-b-2 border-r-2
+                    ${ isMax ? "border-current" : "border-transparent" } pr-2 border-dashed
+                  ` }>
+                    ({ yFormat(lineTotals[id], rest) })
+                  </div>
+                </div>
+              </div>
+            ))
         }
       </div>
     </div>
@@ -96,8 +165,10 @@ const DefaultHoverCompData = {
 const InitialState = {
   xDomain: [],
   yDomain: [],
+  secDomain: [],
   xScale: null,
   yScale: null,
+  secScale: null,
   adjustedWidth: 0,
   adjustedHeight: 0,
   sliceData: {},
@@ -109,12 +180,13 @@ export const LineGraph = props => {
 
   const {
     data = EmptyArray,
-    // keys = EmptyArray,
+    secondary = EmptyArray,
     margin = EmptyObject,
     axisBottom = null,
     axisLeft = null,
+    axisRight = null,
     hoverComp = EmptyObject,
-    // indexBy = "x",
+    indexBy = "id",
     className = "",
     theme = EmptyObject,
     padding = 0.5,
@@ -122,8 +194,18 @@ export const LineGraph = props => {
   } = props;
 
   const HoverCompData = React.useMemo(() => {
-    return { ...DefaultHoverCompData, ...hoverComp };
-  }, [hoverComp])
+    const hcData = { ...DefaultHoverCompData, ...hoverComp };
+    if (typeof hcData.idFormat === "string") {
+      hcData.idFormat = d3format(hcData.idFormat);
+    }
+    if (typeof hcData.xFormat === "string") {
+      hcData.xFormat = d3format(hcData.xFormat);
+    }
+    if (typeof hcData.yFormat === "string") {
+      hcData.yFormat = d3format(hcData.yFormat);
+    }
+    return hcData;
+  }, [hoverComp]);
 
   const Margin = React.useMemo(() => {
     return { ...DefaultMargin, ...margin };
@@ -133,7 +215,20 @@ export const LineGraph = props => {
     { width, height } = useSetSize(ref),
     [state, setState] = React.useState(InitialState),
 
-    lineData = React.useRef(EmptyArray);
+    lineData = React.useRef(EmptyArray),
+    exitingData = React.useRef(EmptyArray),
+
+    secondaryData = React.useRef(EmptyArray),
+    exitingSecondary = React.useRef(EmptyArray);
+
+  const exitData = React.useCallback((secondary = false) => {
+    let data = secondary ? secondaryData : lineData,
+      exiting = secondary ? exitingSecondary : exitingData;
+    data.current = data.current.filter(({ id }) => {
+      return !(id in exiting.current);
+    });
+    setState(prev => ({ ...prev }));
+  }, []);
 
   React.useEffect(() => {
     if (!(width && height)) return;
@@ -154,32 +249,56 @@ export const LineGraph = props => {
       }, []);
     }
 
-    const xScale = d3.scalePoint()
+    let secDomain = [];
+    if (xDomain.length) {
+      secDomain = secondary.reduce((a, c) => {
+        const y = c.data.reduce((a, c) => Math.max(a, +c.y), 0);
+        if (y) {
+          return [0, Math.max(y, get(a, 1, 0))];
+        }
+        return a;
+      }, []);
+    }
+
+    const xScale = scalePoint()
       .padding(padding)
       .domain(xDomain)
       .range([0, adjustedWidth]);
 
-    const yScale = d3.scaleLinear()
+    const yScale = scaleLinear()
       .domain(yDomain)
       .range([0, adjustedHeight]);
 
-		const lineGenerator = d3.line()
-      .curve(d3.curveCatmullRom)
+    const secScale = scaleLinear()
+      .domain(secDomain)
+      .range([0, adjustedHeight]);
+
+		const lineGenerator = d3line()
+      .curve(curveCatmullRom)
 			.x(d => xScale(d.x))
 			.y(d => adjustedHeight - yScale(d.y));
 
-		const yEnter = yScale(yDomain[0]),
-      baseLineGenerator = d3.line()
-        .curve(d3.curveCatmullRom)
+    const secGenerator = d3line()
+      .curve(curveCatmullRom)
+			.x(d => xScale(d.x))
+			.y(d => adjustedHeight - secScale(d.y));
+
+		const yEnter = yScale(0),
+      baseLineGenerator = d3line()
+        .curve(curveCatmullRom)
   			.x(d => xScale(d))
-  			.y(d => adjustedHeight - yEnter);
+  			.y(d => adjustedHeight - yEnter),
+      baseLine = baseLineGenerator(xDomain);
 
     const colorFunc = getColorFunc(colors);
 
+    const lineTotals = {};
+
+// GENERATE LINE DATA
     const [updating, exiting] = lineData.current.reduce((a, c) => {
       const [u, e] = a;
-      u[c.id] = "updating";
-      e[c.id] = c;
+      u[c[indexBy]] = "updating";
+      e[c[indexBy]] = c;
       c.state = "exiting";
       return [u, e];
     }, [{}, {}]);
@@ -189,19 +308,17 @@ export const LineGraph = props => {
       return a;
     }, {});
 
-    const lineTotals = {};
-
     lineData.current = data.map((d, i) => {
 
       const { data, ...rest } = d;
-      delete exiting[d.id];
+      delete exiting[d[indexBy]];
 
       const color = colorFunc(d, i);
 
-      lineTotals[d.id] = 0;
+      lineTotals[d[indexBy]] = 0;
 
       data.forEach(({ x, y }) => {
-        lineTotals[d.id] += y;
+        lineTotals[d[indexBy]] += y;
         sliceData[x].push({
           ...rest,
           color,
@@ -211,15 +328,86 @@ export const LineGraph = props => {
 
       return {
         line: lineGenerator(data),
-        baseLine: baseLineGenerator(xDomain),
+        baseLine,
         color,
-        state: get(updating, d.id, "entering"),
-        id: d.id.toString()
+        state: get(updating, d[indexBy], "entering"),
+        id: d[indexBy].toString()
       };
-    }).concat(Object.values(exiting));
+    });
+
+    exitingData.current = exiting;
+    const exitingAsArray = Object.values(exiting);
+
+    if (exitingAsArray.length) {
+      setTimeout(exitData, 1050);
+    }
+
+    lineData.current = lineData.current.concat(exitingAsArray);
 
     for (const k in sliceData) {
       const col = sliceData[k],
+        { i } = col.reduce((a, c, i) => {
+          c.isMax = false;
+          return c.y > a.y ? { y: c.y, i } : a;
+        }, { y: 0, i: -1 });
+      if (i > -1) {
+        col[i].isMax = true;
+      }
+    }
+
+
+// GENERATE SECONDARY DATA
+    let [secUpdating, secExiting] = secondaryData.current.reduce((a, c) => {
+      const [u, e] = a;
+      u[c[indexBy]] = "updating";
+      e[c[indexBy]] = c;
+      c.state = "exiting";
+      return [u, e];
+    }, [{}, {}]);
+
+    const secSliceData = xDomain.reduce((a, c) => {
+      a[c] = [];
+      return a;
+    }, {});
+
+    secondaryData.current = secondary.map((d, i) => {
+
+      const { data, ...rest } = d;
+      delete secExiting[d[indexBy]];
+
+      const color = colorFunc(d, i + lineData.current.length);
+
+      lineTotals[d[indexBy]] = 0;
+
+      data.forEach(({ x, y }) => {
+        lineTotals[d[indexBy]] += y;
+        secSliceData[x].push({
+          ...rest,
+          color,
+          y
+        });
+      })
+
+      return {
+        line: secGenerator(data),
+        baseLine,
+        color,
+        state: get(secUpdating, d[indexBy], "entering"),
+        id: d[indexBy].toString()
+      };
+    });
+
+    exitingSecondary.current = secExiting;
+    const secExitingAsArray = Object.values(secExiting);
+
+    if (secExitingAsArray.length) {
+      setTimeout(exitData, 1050, true);
+    }
+
+    secondaryData.current = secondaryData.current.concat(secExitingAsArray);
+
+    for (const k in secSliceData) {
+      const col = secSliceData[k],
         { i } = col.reduce((a, c, i) => {
           c.isMax = false;
           return c.y > a.y ? { y: c.y, i } : a;
@@ -235,16 +423,17 @@ export const LineGraph = props => {
     const barData = xDomain.map((x, i) => ({
       left: offset + i * step,
       data: sliceData[x],
+      secondary: secSliceData[x],
       height: adjustedHeight,
       width: step,
       id: x
     }));
 
     setState({
-      xDomain, yDomain, xScale, yScale, barData,
-      adjustedWidth, adjustedHeight, sliceData, lineTotals
+      xDomain, yDomain, xScale, yScale, barData, indexBy, secScale, secDomain,
+      adjustedWidth, adjustedHeight, sliceData, secSliceData, lineTotals
     });
-  }, [data, width, height, Margin, lineData, colors, padding]);
+  }, [data, width, height, Margin, lineData, colors, padding, exitData, indexBy, secondary]);
 
   const {
     onMouseMove,
@@ -253,7 +442,7 @@ export const LineGraph = props => {
   } = useHoverComp(ref);
 
   const {
-    xDomain, xScale, yDomain, yScale, lineTotals, barData,
+    xDomain, xScale, yDomain, yScale, secDomain, secScale, lineTotals, barData,
     ...stateRest
   } = state;
 
@@ -271,6 +460,11 @@ export const LineGraph = props => {
           onMouseLeave={ onMouseLeave }>
           { lineData.current.map(({ id, ...rest }) => (
               <Line key={ id } { ...rest }
+                onMouseMove={ onMouseMove }/>
+            ))
+          }
+          { secondaryData.current.map(({ id, ...rest }) => (
+              <Line key={ id } { ...rest } secondary={ true }
                 onMouseMove={ onMouseMove }/>
             ))
           }
@@ -294,16 +488,28 @@ export const LineGraph = props => {
             { !axisBottom ? null :
               <AxisBottom { ...stateRest }
                 margin={ Margin }
-                scale={ state.xScale }
-                domain={ state.xDomain }
+                scale={ xScale }
+                domain={ xDomain }
                 { ...axisBottom }/>
             }
             { !axisLeft ? null :
               <AxisLeft { ...stateRest }
                 margin={ Margin }
-                scale={ state.yScale }
-                domain={ state.yDomain }
+                scale={ yScale }
+                domain={ yDomain }
                 { ...axisLeft }/>
+            }
+          </g>
+        }
+        { !secondaryData.current.length ? null :
+          <g>
+            { !axisRight ? null :
+              <AxisRight { ...stateRest }
+                secondary={ true }
+                margin={ Margin }
+                scale={ secScale }
+                domain={ secDomain }
+                { ...axisRight }/>
             }
           </g>
         }
@@ -325,30 +531,35 @@ export const LineGraph = props => {
 }
 export default LineGraph;
 
-const Line = React.memo(({ line, baseLine, state, color }) => {
+const Line = React.memo(({ line, baseLine, state, color, secondary = false }) => {
 
   const ref = React.useRef();
 
   React.useEffect(() => {
     if (state === "entering") {
-      d3.select(ref.current)
+      d3select(ref.current)
+        // .attr("opacity", 0)
         .attr("d", baseLine)
         .attr("stroke", color)
+        .attr("stroke-dasharray", secondary ? "8 4" : null)
         .transition().duration(1000)
+        // .attr("opacity", 1)
         .attr("d", line);
     }
     else if (state === "exiting") {
-      d3.select(ref.current)
+      d3select(ref.current)
         .transition().duration(1000)
-        .attr("d", baseLine);
+        .attr("d", baseLine)
+        // .attr("opacity", 0);
     }
     else {
-      d3.select(ref.current)
+      d3select(ref.current)
         .transition().duration(1000)
+        // .attr("opacity", 1)
         .attr("stroke", color)
         .attr("d", line);
     }
-  }, [ref, state, line, baseLine, color]);
+  }, [ref, state, line, baseLine, color, secondary]);
 
   return (
     <g>
@@ -357,11 +568,11 @@ const Line = React.memo(({ line, baseLine, state, color }) => {
   )
 })
 
-const InteractiveBar = React.memo(({ id, left, data, height, width, onMouseMove }) => {
+const InteractiveBar = React.memo(({ id, left, data, secondary, height, width, onMouseMove }) => {
 
   const _onMouseMove = React.useCallback(e => {
-    onMouseMove(e, { x: id, data });
-  }, [onMouseMove, id, data]);
+    onMouseMove(e, { x: id, data, secondary });
+  }, [onMouseMove, id, data, secondary]);
 
   return (
     <rect fill="#00000000"
@@ -369,3 +580,15 @@ const InteractiveBar = React.memo(({ id, left, data, height, width, onMouseMove 
       onMouseMove={ _onMouseMove }/>
   )
 })
+
+export const generateTestLineData = (points = 50, lines = 5, secondary = false) => {
+  const base = 5000;
+
+  return d3range(lines).map(i => ({
+    id: `line-${ i + (secondary ? lines : 0) }`,
+    data: d3range(points).map(p => ({
+      x: `p-${ p }`,
+      y: Math.floor(Math.random() * (secondary ? base * 2.5 : base)) + 1
+    }))
+  }))
+}

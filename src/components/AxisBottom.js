@@ -1,6 +1,8 @@
 import React from "react"
 
-import * as d3 from "d3"
+import { select as d3select } from "d3-selection"
+import { transition as d3transition } from "d3-transition"
+import { axisBottom as d3AxisBottom } from "d3-axis"
 
 export const AxisBottom = props => {
   const {
@@ -46,13 +48,13 @@ const renderAxisBottom = (ref,
       !((i - halfMod) % mod)
     );
 
-  const axisBottom = d3.axisBottom(scale)
+  const axisBottom = d3AxisBottom(scale)
     .tickValues(tickValues)
     .tickFormat(format);
 
-  const transition = d3.transition().duration(1000);
+  const transition = d3transition().duration(1000);
 
-  const animatedGroup = d3.select(ref)
+  const animatedGroup = d3select(ref)
     .selectAll("g.animated-group")
     .data(["animated-group"])
     .join(

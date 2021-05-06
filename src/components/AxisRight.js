@@ -2,10 +2,10 @@ import React from "react"
 
 import { select as d3select } from "d3-selection"
 import { transition as d3transition } from "d3-transition"
-import { axisLeft as d3AxisLeft } from "d3-axis"
+import { axisRight as d3AxisRight } from "d3-axis"
 import { scaleLinear } from "d3-scale"
 
-export const AxisLeft = props => {
+export const AxisRight = props => {
   const {
     adjustedWidth, adjustedHeight,
     domain, scale, format,
@@ -16,7 +16,7 @@ export const AxisLeft = props => {
 
   React.useEffect(() => {
     if (ref.current) {
-      renderAxisLeft(ref.current,
+      renderAxisRight(ref.current,
         adjustedWidth, adjustedHeight,
         domain, scale, format,
         secondary, label, margin, ticks
@@ -30,20 +30,20 @@ export const AxisLeft = props => {
   return <g ref={ ref }/>;
 }
 
-const renderAxisLeft = (ref,
+const renderAxisRight = (ref,
                     adjustedWidth,
                     adjustedHeight,
                     domain, scale, format,
                     secondary, label,
                     margin, ticks) => {
 
-  const { left, top } = margin;
+  const { left, right, top } = margin;
 
   const Scale = scaleLinear()
     .domain(domain)
     .range(scale.range().slice().reverse());
 
-  const axisLeft = d3AxisLeft(Scale)
+  const axisRight = d3AxisRight(Scale)
     .tickFormat(format)
     .ticks(ticks);
 
@@ -56,17 +56,17 @@ const renderAxisLeft = (ref,
       enter => enter.append("g")
         .attr("class", "animated-group")
         .call(enter =>
-          enter.style("transform", `translate(${ left }px, ${ top }px)`)
+          enter.style("transform", `translate(${ adjustedWidth + left }px, ${ top }px)`)
         ),
       update => update
         .call(
           update => update.transition(transition)
-            .style("transform", `translate(${ left }px, ${ top }px)`)
+            .style("transform", `translate(${ adjustedWidth + left }px, ${ top }px)`)
         ),
       exit => exit
         .call(exit =>
           exit.transition(transition)
-            .style("transform", `translate(${ left }px, ${ top }px)`)
+            .style("transform", `translate(${ adjustedWidth + left }px, ${ top }px)`)
           .remove()
         )
     );
@@ -96,19 +96,21 @@ const renderAxisLeft = (ref,
       );
 
   group.selectAll("g.axis")
-    .data(domain.length ? ["axis-left"] : [])
+    .data(domain.length ? ["axis-right"] : [])
     .join("g")
-      .attr("class", "axis axis-left")
-        .classed("secondary", secondary)
+      .attr("class", "axis axis-right")
         .transition(transition)
-        .call(axisLeft);
+        .call(axisRight);
+
+  group.selectAll("g.axis.axis-right .domain")
+    .attr("stroke-dasharray", secondary ? "8 4" : null);
 
   group.selectAll("text.axis-label")
     .data(domain.length && Boolean(label) ? [label] : [])
     .join("text")
-      .attr("class", "axis-label axis-label-left")
+      .attr("class", "axis-label axis-label-right")
       .style("transform",
-        `translate(${ -left + 20 }px, ${ adjustedHeight * 0.5 }px) rotate(-90deg)`
+        `translate(${ right - 20 }px, ${ adjustedHeight * 0.5 }px) rotate(90deg)`
       )
       .attr("text-anchor", "middle")
       .attr("fill", "currentColor")
@@ -129,8 +131,9 @@ const renderAxisLeft = (ref,
     .join(
       enter => enter.append("line")
         .attr("class", "grid-line")
+        .attr("stroke-dasharray", secondary ? "8 4" : null)
         .attr("x1", 0)
-        .attr("x2", adjustedWidth)
+        .attr("x2", -adjustedWidth)
         .attr("y1", gridEnter)
         .attr("y2", gridEnter)
         .attr("stroke", "currentColor")
@@ -145,7 +148,7 @@ const renderAxisLeft = (ref,
           .attr("stroke", "currentColor")
           // .attr("stroke-opacity", 0.5)
           .transition(transition)
-            .attr("x2", adjustedWidth)
+            .attr("x2", -adjustedWidth)
             .attr("y1", d => Scale(d) + 0.5)
             .attr("y2", d => Scale(d) + 0.5)
         ),

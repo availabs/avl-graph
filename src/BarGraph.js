@@ -1,6 +1,9 @@
 import React from "react"
 
-import * as d3 from "d3"
+import { scaleBand, scaleLinear } from "d3-scale"
+import { select as d3select } from "d3-selection"
+import { range as d3range } from "d3-array"
+import { format as d3format } from "d3-format"
 
 import get from "lodash.get"
 
@@ -108,14 +111,32 @@ export const BarGraph = props => {
   }, [margin]);
 
   const HoverCompData = React.useMemo(() => {
-    return { ...DefaultHoverCompData, ...hoverComp };
+    const hcData = { ...DefaultHoverCompData, ...hoverComp };
+    if (typeof hcData.indexFormat === "string") {
+      hcData.indexFormat = d3format(hcData.indexFormat);
+    }
+    if (typeof hcData.keyFormat === "string") {
+      hcData.keyFormat = d3format(hcData.keyFormat);
+    }
+    if (typeof hcData.valueFormat === "string") {
+      hcData.valueFormat = d3format(hcData.valueFormat);
+    }
+    return hcData;
   }, [hoverComp]);
 
   const ref = React.useRef(),
     { width, height } = useSetSize(ref),
     [state, setState] = React.useState(InitialState),
 
-    barData = React.useRef(EmptyArray);
+    barData = React.useRef(EmptyArray),
+    exitingData = React.useRef(EmptyArray);
+
+  const exitData = React.useCallback(() => {
+    barData.current = barData.current.filter(({ id }) => {
+      return !(id in exitingData.current);
+    });
+    setState(prev => ({ ...prev }));
+  }, []);
 
   React.useEffect(() => {
     if (!(width && height)) return;
@@ -161,7 +182,7 @@ export const BarGraph = props => {
     //   return [xd, yd];
     // }, [[], []]);
 
-    const xScale = d3.scaleBand()
+    const xScale = scaleBand()
       .paddingInner(padding || paddingInner)
       .paddingOuter(padding || paddingOuter)
       .domain(xDomain)
@@ -171,7 +192,7 @@ export const BarGraph = props => {
       step = xScale.step(),
       outer = xScale.paddingOuter() * step;
 
-    const yScale = d3.scaleLinear()
+    const yScale = scaleLinear()
       .domain(yDomain)
       .range([0, adjustedHeight]);
 
@@ -260,14 +281,23 @@ export const BarGraph = props => {
         };
       }
       return { stacks: [] }
-    }).concat(Object.values(exiting));
+    });
+
+    exitingData.current = exiting;
+    const exitingAsArray = Object.values(exiting);
+
+    if (exitingAsArray.length) {
+      setTimeout(exitData, 1050);
+    }
+
+    barData.current = barData.current.concat(exitingAsArray);
 
     setState({
       xDomain, yDomain, xScale, yScale,
       adjustedWidth, adjustedHeight
     });
   }, [data, keys, width, height, groupMode,
-      Margin, barData, colors, indexBy,
+      Margin, barData, colors, indexBy, exitData,
       padding, paddingInner, paddingOuter]
   );
 
@@ -353,8 +383,9 @@ const Stack = React.memo(props => {
   const ref = React.useRef();
 
   React.useEffect(() => {
+
     if (state === "entering") {
-      d3.select(ref.current)
+      d3select(ref.current)
         .attr("width", width)
         .attr("height", 0)
         .attr("x", x)
@@ -366,13 +397,13 @@ const Stack = React.memo(props => {
         .attr("fill", color);
     }
     else if (state === "exiting") {
-      d3.select(ref.current)
+      d3select(ref.current)
         .transition().duration(1000)
         .attr("height", 0)
         .attr("y", svgHeight);
     }
     else {
-      d3.select(ref.current)
+      d3select(ref.current)
         .transition().duration(1000)
         .attr("height", height)
         .attr("x", x)
@@ -398,11 +429,11 @@ const Bar = React.memo(({ stacks, left, state, ...props }) => {
 
   React.useEffect(() => {
     if (state === "entering") {
-      d3.select(ref.current)
+      d3select(ref.current)
         .attr("transform", `translate(${ left } 0)`);
     }
     else {
-      d3.select(ref.current)
+      d3select(ref.current)
         .transition().duration(1000)
         .attr("transform", `translate(${ left } 0)`);
     }
@@ -422,11 +453,11 @@ const Bar = React.memo(({ stacks, left, state, ...props }) => {
 export const generateTestBarData = (bars = 50, stacks = 5) => {
   const data = [], keys = [];
 
-  d3.range(stacks).forEach(s => {
+  d3range(stacks).forEach(s => {
     keys.push(`stack-${ s }`);
   });
 
-  d3.range(bars).forEach(b => {
+  d3range(bars).forEach(b => {
     const bar = {
       index: `bar-${ b }`
     }
