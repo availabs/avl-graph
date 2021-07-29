@@ -2,12 +2,15 @@
 .avl-graph {
   /* background-color: var(--graph-bg-color); */
 }
-.avl-graph rect.avl-stack {
+.avl-graph rect.avl-stack,
+.avl-graph rect.avl-grid {
   transition: fill-opacity 0.15s ease-out;
   fill-opacity: 0.75;
 }
 .avl-graph rect.avl-stack:hover {
-  /* fill: currentColor; */
+  fill-opacity: 1;
+}
+.avl-graph g.avl-grid-horizontal:hover rect.avl-grid {
   fill-opacity: 1;
 }
 .avl-graph .graph-line.secondary {

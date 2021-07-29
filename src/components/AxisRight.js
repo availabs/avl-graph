@@ -39,11 +39,15 @@ const renderAxisRight = (ref,
 
   const { left, right, top } = margin;
 
-  const Scale = scaleLinear()
-    .domain(domain)
-    .range(scale.range().slice().reverse());
+  // const Scale = scaleLinear()
+  //   .domain(domain)
+  //   .range(scale.range().slice().reverse());
+  //
+  // const axisRight = d3AxisRight(Scale)
+  //   .tickFormat(format)
+  //   .ticks(ticks);
 
-  const axisRight = d3AxisRight(Scale)
+  const axisRight = d3AxisRight(scale)
     .tickFormat(format)
     .ticks(ticks);
 
@@ -119,15 +123,15 @@ const renderAxisRight = (ref,
 
   const gridLines = group.selectAll("line.grid-line"),
     numGridLines = gridLines.size(),
-    numTicks = Scale.ticks().length,
+    numTicks = scale.ticks().length,
 
     gridEnter = numGridLines && (numGridLines < numTicks) ?
-      Scale(domain[1] * 1.5) : Scale(0),
+      scale(domain[1] * 1.5) : scale(0),
 
-    gridExit = Scale(domain[1] * 1.5);
+    gridExit = scale(domain[1] * 1.5);
 
   gridLines
-    .data(domain.length ? Scale.ticks() : [])
+    .data(domain.length ? scale.ticks() : [])
     .join(
       enter => enter.append("line")
         .attr("class", "grid-line")
@@ -140,8 +144,8 @@ const renderAxisRight = (ref,
         // .attr("stroke-opacity", 0.5)
           .call(enter => enter
             .transition(transition)
-              .attr("y1", d => Scale(d) + 0.5)
-              .attr("y2", d => Scale(d) + 0.5)
+              .attr("y1", d => scale(d) + 0.5)
+              .attr("y2", d => scale(d) + 0.5)
           ),
       update => update
         .call(update => update
@@ -149,8 +153,8 @@ const renderAxisRight = (ref,
           // .attr("stroke-opacity", 0.5)
           .transition(transition)
             .attr("x2", -adjustedWidth)
-            .attr("y1", d => Scale(d) + 0.5)
-            .attr("y2", d => Scale(d) + 0.5)
+            .attr("y1", d => scale(d) + 0.5)
+            .attr("y2", d => scale(d) + 0.5)
         ),
       exit => exit
         .call(exit => exit

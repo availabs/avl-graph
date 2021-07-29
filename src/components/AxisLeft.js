@@ -8,8 +8,8 @@ import { scaleLinear } from "d3-scale"
 export const AxisLeft = props => {
   const {
     adjustedWidth, adjustedHeight,
-    domain, scale, format,
-    secondary, label, margin, ticks = 10
+    domain, scale, format, type = "linear",
+    secondary, label, margin, ticks = 10, tickValues
   } = props;
 
   const ref = React.useRef();
@@ -18,13 +18,13 @@ export const AxisLeft = props => {
     if (ref.current) {
       renderAxisLeft(ref.current,
         adjustedWidth, adjustedHeight,
-        domain, scale, format,
-        secondary, label, margin, ticks
+        domain, scale, type, format,
+        secondary, label, margin, ticks, tickValues
       );
     }
   }, [adjustedWidth, adjustedHeight,
-      domain, scale, format,
-      secondary, label, margin, ticks]
+      domain, scale, type, format,
+      secondary, label, margin, ticks, tickValues]
   );
 
   return <g ref={ ref }/>;
@@ -33,19 +33,28 @@ export const AxisLeft = props => {
 const renderAxisLeft = (ref,
                     adjustedWidth,
                     adjustedHeight,
-                    domain, scale, format,
+                    domain, scale, type, format,
                     secondary, label,
-                    margin, ticks) => {
+                    margin, ticks, tickValues) => {
 
   const { left, top } = margin;
 
-  const Scale = scaleLinear()
-    .domain(domain)
-    .range(scale.range().slice().reverse());
+  // const Scale = scaleLinear()
+  //   .domain(domain)
+  //   .range(scale.range().slice().reverse());
+  //
+  // const axisLeft = d3AxisLeft(Scale)
+  //   .tickFormat(format)
+  //   .ticks(ticks);
 
-  const axisLeft = d3AxisLeft(Scale)
-    .tickFormat(format)
-    .ticks(ticks);
+  const axisLeft = d3AxisLeft(scale)
+    .tickFormat(format);
+  if (tickValues) {
+    axisLeft.tickValues(tickValues);
+  }
+  else {
+    axisLeft.ticks(ticks);
+  }
 
   const transition = d3transition().duration(1000);
 
@@ -115,17 +124,19 @@ const renderAxisLeft = (ref,
       .attr("font-size", "1rem")
       .text(d => d);
 
+  if (type !== "linear") return;
+
   const gridLines = group.selectAll("line.grid-line"),
     numGridLines = gridLines.size(),
-    numTicks = Scale.ticks().length,
+    numTicks = scale.ticks(ticks).length,
 
     gridEnter = numGridLines && (numGridLines < numTicks) ?
-      Scale(domain[1] * 1.5) : Scale(0),
+      scale(domain[1] * 1.5) : scale(0),
 
-    gridExit = Scale(domain[1] * 1.5);
+    gridExit = scale(domain[1] * 1.5);
 
   gridLines
-    .data(domain.length ? Scale.ticks() : [])
+    .data(domain.length ? scale.ticks(ticks) : [])
     .join(
       enter => enter.append("line")
         .attr("class", "grid-line")
@@ -137,8 +148,8 @@ const renderAxisLeft = (ref,
         // .attr("stroke-opacity", 0.5)
           .call(enter => enter
             .transition(transition)
-              .attr("y1", d => Scale(d) + 0.5)
-              .attr("y2", d => Scale(d) + 0.5)
+              .attr("y1", d => scale(d) + 0.5)
+              .attr("y2", d => scale(d) + 0.5)
           ),
       update => update
         .call(update => update
@@ -146,8 +157,8 @@ const renderAxisLeft = (ref,
           // .attr("stroke-opacity", 0.5)
           .transition(transition)
             .attr("x2", adjustedWidth)
-            .attr("y1", d => Scale(d) + 0.5)
-            .attr("y2", d => Scale(d) + 0.5)
+            .attr("y1", d => scale(d) + 0.5)
+            .attr("y2", d => scale(d) + 0.5)
         ),
       exit => exit
         .call(exit => exit

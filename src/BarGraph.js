@@ -12,6 +12,7 @@ import { useTheme, useSetSize } from "@availabs/avl-components"
 import {
   AxisBottom,
   AxisLeft,
+  AxisRight,
   HoverCompContainer,
   useHoverComp
 } from "./components"
@@ -26,19 +27,20 @@ import {
 
 import "./avl-graph.css"
 
-const HoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => {
+const DefaultHoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => {
   const theme = useTheme();
   return (
     <div className={ `
-        flex flex-col px-2 py-1 rounded
-        ${ theme.accent1 }
-      ` }>
+      flex flex-col px-2 pt-1 rounded
+      ${ keys.length <= 1 ? "pb-2" : "pb-1" }
+      ${ theme.accent1 }
+    ` }>
       <div className="font-bold text-lg leading-6 border-b-2 mb-1 pl-2">
         { indexFormat(get(data, "index", null)) }
       </div>
       { keys.slice().reverse().map(key => (
           <div key={ key } className={ `
-            flex items-center px-2 border rounded transition
+            flex items-center px-2 border-2 rounded transition
             ${ data.key === key ? "border-current" : "border-transparent" }
           `}>
             <div className="mr-2 rounded-sm color-square w-5 h-5"
@@ -50,20 +52,19 @@ const HoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => {
               { keyFormat(key) }:
             </div>
             <div className="text-right flex-1">
-              { valueFormat(data.data[key]) }
+              { valueFormat(get(data, ["data", key], 0)) }
             </div>
           </div>
         ))
       }
       { keys.length <= 1 ? null :
-        <div style={ { paddingRight: "1px" } }>
-          <div className="flex pr-2">
-            <div className="mr-4 pl-2">
-              Total
-            </div>
-            <div className="flex-1 text-right">
-              {  valueFormat(keys.reduce((a, c) => a + data.data[c], 0)) }
-            </div>
+        <div className="flex pr-2">
+          <div className="w-5 mr-2"/>
+          <div className="mr-4 pl-2">
+            Total:
+          </div>
+          <div className="flex-1 text-right">
+            {  valueFormat(keys.reduce((a, c) => a + get(data, ["data", c], 0), 0)) }
           </div>
         </div>
       }
@@ -71,7 +72,7 @@ const HoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => {
   )
 }
 const DefaultHoverCompData = {
-  HoverComp,
+  HoverComp: DefaultHoverComp,
   indexFormat: Identity,
   keyFormat: Identity,
   valueFormat: Identity,
@@ -96,9 +97,9 @@ export const BarGraph = props => {
     hoverComp = EmptyObject,
     axisBottom = null,
     axisLeft = null,
+    axisRight = null,
     indexBy = "index",
     className = "",
-    theme = EmptyObject,
     paddingInner = 0,
     paddingOuter = 0,
     padding,
@@ -150,7 +151,7 @@ export const BarGraph = props => {
     if (xDomain.length) {
       if (groupMode === "stacked") {
         yDomain = data.reduce((a, c) => {
-          const y = keys.reduce((a, k) => a + c[k], 0);
+          const y = keys.reduce((a, k) => a + get(c, k, 0), 0);
           if (y) {
             return [0, Math.max(y, get(a, 1, 0))];
           }
@@ -159,7 +160,7 @@ export const BarGraph = props => {
       }
       else if (groupMode === "grouped") {
         yDomain = data.reduce((a, c) => {
-          const y = keys.reduce((a, k) => Math.max(a, c[k]), 0);
+          const y = keys.reduce((a, k) => Math.max(a, get(c, k, 0)), 0);
           if (y) {
             return [0, Math.max(y, get(a, 1, 0))];
           }
@@ -194,7 +195,7 @@ export const BarGraph = props => {
 
     const yScale = scaleLinear()
       .domain(yDomain)
-      .range([0, adjustedHeight]);
+      .range([adjustedHeight, 0]);
 
     const colorFunc = getColorFunc(colors);
 
@@ -213,12 +214,14 @@ export const BarGraph = props => {
       const barValues = {};
 
       if (groupMode === "stacked") {
-        let current = 0;
+        let current = adjustedHeight;
 
         const stacks = keys.map((key, ii) => {
           const value = get(d, key, 0),
-            height = yScale(value) || 0,
-            color = colorFunc(d, ii, key);
+            height = Math.max(0, adjustedHeight - yScale(value)),
+            color = colorFunc(value, ii, d, key);
+
+          current -= height;
 
           barValues[key] = { value, color };
 
@@ -228,13 +231,12 @@ export const BarGraph = props => {
               width: bandwidth,
               height,
               index: d[indexBy],
-              y: Math.max(0, adjustedHeight - current - height),
+              y: current,
               x: 0,
               color,
               value,
               barValues
             };
-          current += height;
           return stack;
         });
 
@@ -251,7 +253,7 @@ export const BarGraph = props => {
         const stacks = keys.slice().reverse()
           .map((key, ii) => {
             const value = get(d, key, 0),
-              height = yScale(value) || 0,
+              y = Math.min(adjustedHeight, yScale(value)),
               color = colorFunc(d, ii, key);
 
             barValues[key] = { value, color };
@@ -260,9 +262,9 @@ export const BarGraph = props => {
                 data: d,
                 key,
                 width: bandwidth / keys.length,
-                height,
+                height: adjustedHeight - y,
                 index: d[indexBy],
-                y: Math.max(0, adjustedHeight - height),
+                y,
                 x: (bandwidth / keys.length) * ii,
                 color,
                 value,
@@ -309,7 +311,7 @@ export const BarGraph = props => {
 
   const {
     xDomain, xScale, yDomain, yScale,
-    ...stateRest
+    ...restOfState
   } = state;
 
   const {
@@ -322,6 +324,31 @@ export const BarGraph = props => {
     <div className="w-full h-full relative avl-graph-container" ref={ ref }>
 
       <svg className={ `w-full h-full block avl-graph ${ className }` }>
+        { !barData.current.length ? null :
+          <g>
+            { !axisBottom ? null :
+              <AxisBottom { ...restOfState }
+                margin={ Margin }
+                scale={ xScale }
+                domain={ xDomain }
+                { ...axisBottom }/>
+            }
+            { !axisLeft ? null :
+              <AxisLeft { ...restOfState }
+                margin={ Margin }
+                scale={ yScale }
+                domain={ yDomain }
+                { ...axisLeft }/>
+            }
+            { !axisRight ? null :
+              <AxisRight { ...restOfState }
+                margin={ Margin }
+                scale={ yScale }
+                domain={ yDomain }
+                { ...axisRight }/>
+            }
+          </g>
+        }
         <g style={ { transform: `translate(${ Margin.left }px, ${ Margin.top }px)` } }
           onMouseLeave={ onMouseLeave }>
           { barData.current.map(({ id, ...rest }) =>
@@ -331,24 +358,6 @@ export const BarGraph = props => {
             )
           }
         </g>
-        { !barData.current.length ? null :
-          <g>
-            { !axisBottom ? null :
-              <AxisBottom { ...stateRest }
-                margin={ Margin }
-                scale={ state.xScale }
-                domain={ state.xDomain }
-                { ...axisBottom }/>
-            }
-            { !axisLeft ? null :
-              <AxisLeft { ...stateRest }
-                margin={ Margin }
-                scale={ state.yScale }
-                domain={ state.yDomain }
-                { ...axisLeft }/>
-            }
-          </g>
-        }
       </svg>
 
       <HoverCompContainer { ...hoverData }
@@ -357,7 +366,7 @@ export const BarGraph = props => {
         svgHeight={ height }
         margin={ Margin }>
         { !hoverData.data ? null :
-          <HoverComp data={ hoverData.data } keys={ keys } theme={ theme }
+          <HoverComp data={ hoverData.data } keys={ keys }
             { ...hoverCompRest }/>
         }
       </HoverCompContainer>
@@ -383,7 +392,6 @@ const Stack = React.memo(props => {
   const ref = React.useRef();
 
   React.useEffect(() => {
-
     if (state === "entering") {
       d3select(ref.current)
         .attr("width", width)
@@ -391,25 +399,24 @@ const Stack = React.memo(props => {
         .attr("x", x)
         .attr("y", svgHeight)
         .transition().duration(1000)
-        .attr("height", height)
-        .attr("x", x)
-        .attr("y", y)
-        .attr("fill", color);
+          .attr("height", height)
+          .attr("y", y)
+          .attr("fill", color);
     }
     else if (state === "exiting") {
       d3select(ref.current)
         .transition().duration(1000)
-        .attr("height", 0)
-        .attr("y", svgHeight);
+          .attr("height", 0)
+          .attr("y", svgHeight);
     }
     else {
       d3select(ref.current)
         .transition().duration(1000)
-        .attr("height", height)
-        .attr("x", x)
-        .attr("y", y)
-        .attr("width", width)
-        .attr("fill", color);
+          .attr("height", height)
+          .attr("x", x)
+          .attr("y", y)
+          .attr("width", width)
+          .attr("fill", color);
     }
   }, [ref, state, width, svgHeight, height, x, y, color]);
 
