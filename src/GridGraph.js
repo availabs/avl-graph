@@ -66,7 +66,16 @@ const DefaultHoverCompData = {
   position: "side"
 }
 
+const DefaultPoint = {
+  r: 5,
+  fill: "none",
+  stroke: "#00f",
+  strokeWidth: 1
+}
+
 const InitialState = {
+  // gridData: [],
+  // exitingData: [],
   xDomain: [],
   yDomain: [],
   tickValues: [],
@@ -75,6 +84,18 @@ const InitialState = {
   adjustedWidth: 0,
   adjustedHeight: 0
 }
+// const Reducer = (state, action) => {
+//   const { type, ...payload } = action;
+//   switch (type) {
+//     case "update-state": {
+//       const { gridData, ...rest } = payload;
+//
+//
+//     }
+//     default:
+//       return state;
+//   }
+// }
 
 export const GridGraph = props => {
 
@@ -91,7 +112,10 @@ export const GridGraph = props => {
     paddingOuter = 0,
     padding,
     colors,
-    groupMode = "stacked"
+    groupMode = "stacked",
+    points = EmptyArray,
+    spans = EmptyArray,
+    showAnimations = true
   } = props;
 
   const Margin = React.useMemo(() => {
@@ -117,14 +141,25 @@ export const GridGraph = props => {
     [state, setState] = React.useState(InitialState),
 
     gridData = React.useRef(EmptyArray),
-    exitingData = React.useRef(EmptyArray);
+    pointData = React.useRef(EmptyArray),
+    spanLines = React.useRef(EmptyArray);
 
-  const exitData = React.useCallback(() => {
+  const exitData = React.useCallback(exiting => {
     gridData.current = gridData.current.filter(({ id }) => {
-      return !(id in exitingData.current);
+      return !(id in exiting);
     });
     setState(prev => ({ ...prev }));
   }, []);
+
+  const pointMap = React.useMemo(() => {
+    return points.reduce((a, c) => {
+      if (!(c.index in a)) {
+        a[c.index] = {};
+      }
+      a[c.index][c.key] = c;
+      return a;
+    }, {});
+  }, [points]);
 
   React.useEffect(() => {
     if (!(width && height)) return;
@@ -176,27 +211,57 @@ export const GridGraph = props => {
       return a;
     }, {});
 
+    pointData.current = [];
+    spanLines.current = [];
+
+    const spanData = [];
+    const pointPositions = {};
+
     gridData.current = data.map((d, i) => {
 
-      delete exiting[d[indexBy]];
+      const index = d[indexBy];
+
+      pointPositions[index] = {};
+
+      const pointsForIndex = get(pointMap, index, {});
+
+      delete exiting[index];
 
       const height = hScale(get(d, "height", 1));
 
       yRange.push(top + height * 0.5);
       if (height >= 14) {
-        tickValues.push(d[indexBy]);
+        tickValues.push(index);
       }
 
       const grid = xDomain.map((x, ii) => {
         const value = get(d, x, null),
           color = value === null ? "#000" : colorFunc(value, ii, d, x);
-        indexData[x][d[indexBy]] = { value, color };
+        indexData[x][index] = { value, color };
+
+        if (x in pointsForIndex) {
+          const { index, key, spanTo, ...rest } = pointsForIndex[x];
+          const point = {
+            ...DefaultPoint,
+            ...rest,
+            cx: ii * bandwidth + bandwidth * 0.5,
+            cy: top + height * 0.5,
+            key: `${ index }-${ key }`
+          }
+          pointData.current.push(point);
+          pointPositions[index][key] = point;
+
+          if (spanTo) {
+            spanData.push([index, key, spanTo])
+          }
+        }
+
         return {
           data: d,
           key: x,
           width: bandwidth,
           height,
-          index: d[indexBy],
+          index,
           x: ii * bandwidth,
           color,
           value,
@@ -209,21 +274,34 @@ export const GridGraph = props => {
         grid,
         top,
         data: d,
-        state: get(updating, d[indexBy], "entering"),
-        id: d[indexBy].toString()
+        state: get(updating, index, "entering"),
+        id: String(index)
       };
       top += height;
       return horizontal;
     });
 
+    spanData.forEach(([index, from, to]) => {
+      const p1 = get(pointPositions, [index, from]),
+        p2 = get(pointPositions, [index, to]);
+      spanLines.current.push({
+        x1: p1.cx,
+        y1: p1.cy,
+        x2: p2.cx,
+        y2: p2.cy,
+        stroke: "#00f",
+        strokeWidth: 1,
+        key: `${ p1.key }-${ p2.key }`
+      })
+    })
+
     yRange.push(adjustedHeight);
     yScale.range(yRange);
 
-    exitingData.current = exiting;
     const exitingAsArray = Object.values(exiting);
 
     if (exitingAsArray.length) {
-      setTimeout(exitData, 1050);
+      setTimeout(exitData, 1050, exiting);
     }
 
     gridData.current = gridData.current.concat(exitingAsArray);
@@ -233,7 +311,7 @@ export const GridGraph = props => {
       adjustedWidth, adjustedHeight, tickValues
     });
   }, [data, keys, width, height,
-      Margin, gridData, colors, indexBy, exitData]
+      Margin, gridData, colors, indexBy]
   );
 
   const {
@@ -287,9 +365,13 @@ export const GridGraph = props => {
 
           { gridData.current.map(({ id, ...rest }) =>
               <Horizontal key={ id } { ...rest }
-                onMouseMove={ onMouseMove }/>
+                onMouseMove={ onMouseMove }
+                showAnimations={ showAnimations }/>
             )
           }
+
+          { pointData.current.map(point => <circle { ...point }/>) }
+          { spanLines.current.map(line => <line { ...line }/>) }
 
           { !hoverData.show ? null :
             <rect stroke="currentColor" fill="none" strokeWidth="2" width
@@ -321,37 +403,68 @@ export const GridGraph = props => {
   )
 }
 
-const Grid = ({ x, width, height, color, state, onMouseMove, Key, index, value, data, indexData, indexes }) => {
+const Grid = ({ x, width, height, color,
+                state, onMouseMove,
+                Key, index, value, showAnimations,
+                data, indexData, indexes }) => {
 
   const ref = React.useRef();
 
   React.useEffect(() => {
     if (state === "entering") {
-      d3select(ref.current)
+      const entering = d3select(ref.current)
         .attr("width", 0)
         .attr("height", height)
         .attr("x", 0)
         .attr("y", 0)
-        .attr("fill", color)
-        .transition().duration(1000)
+        .attr("fill", color);
+
+      if (showAnimations) {
+        entering.transition().duration(1000)
           .attr("width", width)
           .attr("x", x);
+      }
+      else {
+        entering
+          .attr("width", width)
+          .attr("x", x);
+      }
     }
     else if (state === "exiting") {
-      d3select(ref.current)
-        .transition().duration(1000)
+      const exiting = d3select(ref.current);
+
+      if (showAnimations) {
+        exiting.transition().duration(1000)
           .attr("width", 0)
           .attr("height", height)
           .attr("x", 0)
           .attr("fill", color);
+      }
+      else {
+        exiting
+          .attr("width", 0)
+          .attr("height", height)
+          .attr("x", 0)
+          .attr("fill", color);
+      }
     }
     else {
-      d3select(ref.current)
-        .transition().duration(1000)
+      const updating = d3select(ref.current);
+
+      if (showAnimations) {
+        updating.transition().duration(1000)
           .attr("width", width)
           .attr("height", height)
           .attr("x", x)
           .attr("fill", color);
+      }
+      else {
+        updating
+          .attr("width", width)
+          .attr("height", height)
+          .attr("x", x)
+          .attr("fill", color);
+      }
     }
   }, [x, width, height, color, state]);
 
@@ -365,7 +478,7 @@ const Grid = ({ x, width, height, color, state, onMouseMove, Key, index, value, 
   )
 }
 
-const Horizontal = React.memo(({ grid, top, state, ...props }) => {
+const Horizontal = React.memo(({ grid, top, state, showAnimations, ...props }) => {
 
   const ref = React.useRef();
 
@@ -375,9 +488,15 @@ const Horizontal = React.memo(({ grid, top, state, ...props }) => {
         .attr("transform", `translate(0 ${ top })`);
     }
     else {
-      d3select(ref.current)
-        .transition().duration(1000)
-        .attr("transform", `translate(0 ${ top })`);
+      if (showAnimations) {
+        d3select(ref.current)
+          .transition().duration(1000)
+          .attr("transform", `translate(0 ${ top })`);
+      }
+      else {
+        d3select(ref.current)
+          .attr("transform", `translate(0 ${ top })`);
+      }
     }
   }, [state, top]);
 
@@ -385,7 +504,8 @@ const Horizontal = React.memo(({ grid, top, state, ...props }) => {
     <g ref={ ref } className="avl-grid-horizontal">
       { grid.map(({ key, ...rest }) =>
           <Grid key={ key } Key={ key } state={ state }
-            { ...props } { ...rest }/>
+            { ...props } { ...rest }
+            showAnimations={ showAnimations }/>
         )
       }
     </g>
