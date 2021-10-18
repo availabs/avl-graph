@@ -69,7 +69,13 @@ const DefaultHoverCompData = {
 const DefaultPoint = {
   r: 5,
   fill: "none",
-  stroke: "#00f",
+  stroke: "#08f",
+  strokeWidth: 1
+}
+
+const DefaultBoundsRect = {
+  fill: "none",
+  stroke: "#08f",
   strokeWidth: 1
 }
 
@@ -114,7 +120,7 @@ export const GridGraph = props => {
     colors,
     groupMode = "stacked",
     points = EmptyArray,
-    spans = EmptyArray,
+    bounds = EmptyArray,
     showAnimations = true
   } = props;
 
@@ -140,9 +146,10 @@ export const GridGraph = props => {
     { width, height } = useSetSize(ref),
     [state, setState] = React.useState(InitialState),
 
-    gridData = React.useRef(EmptyArray),
-    pointData = React.useRef(EmptyArray),
-    spanLines = React.useRef(EmptyArray);
+    gridData = React.useRef([]),
+    pointData = React.useRef([]),
+    spanLines = React.useRef([]),
+    boundRects = React.useRef([]);
 
   const exitData = React.useCallback(exiting => {
     gridData.current = gridData.current.filter(({ id }) => {
@@ -151,7 +158,7 @@ export const GridGraph = props => {
     setState(prev => ({ ...prev }));
   }, []);
 
-  const pointMap = React.useMemo(() => {
+  const pointsMap = React.useMemo(() => {
     return points.reduce((a, c) => {
       if (!(c.index in a)) {
         a[c.index] = {};
@@ -160,6 +167,14 @@ export const GridGraph = props => {
       return a;
     }, {});
   }, [points]);
+
+  const boundsMap = React.useMemo(() => {
+    return bounds.reduce((a, c) => {
+      const { index, ...rest } = c;
+      a[index] = rest;
+      return a;
+    }, {});
+  }, [bounds]);
 
   React.useEffect(() => {
     if (!(width && height)) return;
@@ -213,9 +228,12 @@ export const GridGraph = props => {
 
     pointData.current = [];
     spanLines.current = [];
+    boundRects.current = [];
 
     const spanData = [];
     const pointPositions = {};
+
+    const boundsData = {};
 
     gridData.current = data.map((d, i) => {
 
@@ -223,7 +241,8 @@ export const GridGraph = props => {
 
       pointPositions[index] = {};
 
-      const pointsForIndex = get(pointMap, index, {});
+      const pointsForIndex = get(pointsMap, index, {});
+      const boundsForIndex = get(boundsMap, index, {})
 
       delete exiting[index];
 
@@ -253,6 +272,24 @@ export const GridGraph = props => {
 
           if (spanTo) {
             spanData.push([index, key, spanTo])
+          }
+        }
+
+        const { bounds = [], ...rest } = boundsForIndex;
+
+        if (bounds.includes(x)) {
+          if (index in boundsData) {
+            boundsData[index].width = ii * bandwidth + bandwidth - boundsData[index].x;
+          }
+          else {
+            boundsData[index] = {
+              ...DefaultBoundsRect,
+              ...rest,
+              x: ii * bandwidth,
+              y: top,
+              height,
+              key: index
+            }
           }
         }
 
@@ -289,11 +326,13 @@ export const GridGraph = props => {
         y1: p1.cy,
         x2: p2.cx,
         y2: p2.cy,
-        stroke: "#00f",
+        stroke: "#0ff",
         strokeWidth: 1,
         key: `${ p1.key }-${ p2.key }`
       })
     })
+
+    boundRects.current = Object.values(boundsData);
 
     yRange.push(adjustedHeight);
     yScale.range(yRange);
@@ -370,8 +409,13 @@ export const GridGraph = props => {
             )
           }
 
-          { pointData.current.map(point => <circle { ...point }/>) }
-          { spanLines.current.map(line => <line { ...line }/>) }
+          { !gridData.current.length ? null :
+            <>
+              { pointData.current.map(point => <circle { ...point }/>) }
+              { spanLines.current.map(line => <line { ...line }/>) }
+              { boundRects.current.map(rect => <rect { ...rect }/>) }
+            </>
+          }
 
           { !hoverData.show ? null :
             <rect stroke="currentColor" fill="none" strokeWidth="2" width
