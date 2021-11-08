@@ -35,3 +35,7 @@ export const DefaultMargin = {
   right: 20,
   bottom: 30
 };
+
+export const DefaultAxis = {
+  min: 0
+}

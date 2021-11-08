@@ -23,7 +23,8 @@ import {
   Identity,
   EmptyArray,
   EmptyObject,
-  DefaultMargin
+  DefaultMargin,
+  DefaultAxis
 } from "./utils"
 
 const DefaultHoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals }) => {
@@ -214,12 +215,17 @@ export const LineGraph = props => {
 
     const xDomain = data.length ? data[0].data.map(d => d.x) : [];
 
+    const aLeft = {
+      ...DefaultAxis,
+      ...axisLeft
+    }
+
     let yDomain = [];
     if (xDomain.length) {
       yDomain = data.reduce((a, c) => {
         const y = c.data.reduce((a, c) => Math.max(a, +c.y), 0);
         if (y) {
-          return [0, Math.max(y, get(a, 1, 0))];
+          return [aLeft.min, Math.max(y, get(a, 1, 0))];
         }
         return a;
       }, []);
@@ -447,7 +453,7 @@ export const LineGraph = props => {
                 margin={ Margin }
                 scale={ yScale }
                 domain={ yDomain }
-                { ...axisLeft }/>
+                { ...axisLeft  }/>
             }
           </g>
         }

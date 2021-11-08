@@ -250,7 +250,7 @@ export const BarGraph = props => {
         };
       }
       else if (groupMode === "grouped") {
-        const stacks = keys.slice().reverse()
+        const stacks = keys.slice()
           .map((key, ii) => {
             const value = get(d, key, 0),
               y = Math.min(adjustedHeight, yScale(value)),
