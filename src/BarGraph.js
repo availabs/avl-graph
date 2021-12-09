@@ -299,7 +299,7 @@ export const BarGraph = props => {
       adjustedWidth, adjustedHeight
     });
   }, [data, keys, width, height, groupMode,
-      Margin, barData, colors, indexBy, exitData,
+      Margin, colors, indexBy, exitData,
       padding, paddingInner, paddingOuter]
   );
 

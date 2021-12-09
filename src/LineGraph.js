@@ -165,7 +165,6 @@ export const LineGraph = props => {
     hoverComp = EmptyObject,
     indexBy = "id",
     className = "",
-    theme = EmptyObject,
     padding = 0.5,
     colors
   } = props;
@@ -507,7 +506,7 @@ export const LineGraph = props => {
         svgHeight={ height }
         margin={ Margin }>
         { !hoverData.data ? null :
-          <HoverComp data={ hoverData.data } theme={ theme } lineTotals={ lineTotals }
+          <HoverComp data={ hoverData.data } lineTotals={ lineTotals }
             { ...hoverCompRest }/>
         }
       </HoverCompContainer>

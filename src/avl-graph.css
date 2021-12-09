@@ -3,11 +3,13 @@
   /* background-color: var(--graph-bg-color); */
 }
 .avl-graph rect.avl-stack,
-.avl-graph rect.avl-grid {
+.avl-graph rect.avl-grid,
+.avl-graph path.avl-slice {
   transition: fill-opacity 0.15s ease-out;
   fill-opacity: 0.75;
 }
-.avl-graph rect.avl-stack:hover {
+.avl-graph rect.avl-stack:hover,
+.avl-graph path.avl-slice:hover {
   fill-opacity: 1;
 }
 .avl-graph g.avl-grid-horizontal:hover rect.avl-grid {
