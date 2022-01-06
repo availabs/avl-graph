@@ -3,7 +3,7 @@ import React from "react"
 import { scaleLinear } from "d3-scale"
 import { select as d3select } from "d3-selection"
 import { format as d3format } from "d3-format"
-import { sum as d3sum, extent as d3extent } from "d3-array"
+import { sum as d3sum, extent as d3extent, range as d3range } from "d3-array"
 import * as d3shape from "d3-shape"
 
 import get from "lodash.get"
@@ -112,7 +112,7 @@ const Reducer = (state, action) => {
       return {
         ...state,
         pieData: state.pieData.filter(pie => {
-          return !payload.exiting.includes(pie.index);
+          return payload.exiting.includes(pie.index) ? pie.state !== "exiting" : true;
         }),
         exiting: state.exiting.filter(e => {
           return !payload.exiting.includes(e);
@@ -242,21 +242,27 @@ export const PieGraph = props => {
 
     let ms = maxSquare(adjustedWidth, adjustedHeight, pieData.length);
 
-    const numCols = Math.floor(adjustedWidth / ms);
+    let numCols = Math.floor(adjustedWidth / ms),
+      numRows = Math.ceil(pieData.length / numCols),
+      numPiesInLastRow = pieData.length - ((numRows - 1) * numCols);
+
+    while (numPiesInLastRow <= (numCols - 1) - (numRows - 1)) {
+      --numCols;
+      numRows = Math.ceil(pieData.length / numCols);
+      numPiesInLastRow = pieData.length - ((numRows - 1) * numCols);
+    }
+
+    const h = adjustedHeight / numRows;
+
+    ms = Math.min(ms, h - labelPadding);
+
+    const diff = h - ms;
 
     const domain = d3extent(pieData, d => d.total);
 
     if (domain[0] === domain[1]) {
       domain[0] = 0;
     }
-
-    const numRows = Math.ceil(pieData.length / numCols),
-      numPiesInLastRow = pieData.length % numCols ? pieData.length % numCols : numCols,
-      h = adjustedHeight / numRows;
-
-    ms = Math.min(ms, h - labelPadding);
-
-    const diff = h - ms;
 
     const radiusScale = scaleLinear()
       .domain(domain)
@@ -375,7 +381,7 @@ const Slice = React.memo(({ state, data, radius, index, onMouseMove, ...props })
           .attr("d", arc(props))
           .attr("fill", data.color);
     }
-  }, [ref, zeroArc, arc, data, props]);
+  }, [ref, zeroArc, arc, data, props, state]);
 
   const _onMouseMove = React.useCallback(e => {
     onMouseMove(e, { ...data });
@@ -394,26 +400,64 @@ const Pie = React.memo(({ pie, dx, dy, ms, state, label, ...props }) => {
   React.useEffect(() => {
     if (state === "entering") {
       d3select(ref.current)
-        .style("transform", `translate(${ dx }px, ${ dy }px)`);
+        .style("transform", `translate(${ dx }px, ${ dy }px)`)
+        .style("opacity", 0)
+          .transition().duration(1000)
+            .style("opacity", 1);
+    }
+    else if (state === "exiting") {
+      d3select(ref.current)
+        .transition().duration(1000)
+          .style("transform", `translate(${ dx }px, ${ dy }px)`)
+          .style("opacity", 0);
     }
     else {
       d3select(ref.current)
         .transition().duration(1000)
-          .style("transform", `translate(${ dx }px, ${ dy }px)`);
+          .style("transform", `translate(${ dx }px, ${ dy }px)`)
+          .style("opacity", 1);
     }
-  }, [ref, dx, dy]);
+  }, [ref, dx, dy, state]);
+
+  const labelRef = React.useRef();
+  React.useEffect(() => {
+    d3select(labelRef.current)
+      .transition().duration(1000)
+        .style("transform", `translateY(${ ms * 0.5 + 15 }px)`)
+  }, [labelRef, ms])
 
   return (
     <g ref={ ref }>
       { pie.map((p, i) => (
-          <Slice ref={ ref } key={ p.data.key }
+          <Slice key={ p.data.key }
             { ...props } { ...p }
             state={ state }/>
         ))
       }
-      <g style={ { transform: `translate(${ 0 }px, ${ ms * 0.5 + 15 }px)` } }>
+      <g ref={ labelRef }>
         <text textAnchor="middle">{ label }</text>
       </g>
     </g>
   )
 })
+
+export const generateTestPieData = (pies = 10, slices = 5) => {
+  const data = [], keys = [];
+
+  d3range(slices).forEach(s => {
+    keys.push(`slice-${ s }`);
+  });
+
+  d3range(pies).forEach(i => {
+    const pie = {
+      index: `pie-${ i }`
+    }
+    keys.forEach(k => {
+      const rand = Math.random() * 250 + 50;
+      pie[k] = rand + (Math.random() * rand);
+    })
+    data.push(pie);
+  });
+
+  return { data, keys };
+}
