@@ -5,6 +5,7 @@ import { select as d3select } from "d3-selection"
 import { format as d3format } from "d3-format"
 import { sum as d3sum, extent as d3extent, range as d3range } from "d3-array"
 import * as d3shape from "d3-shape"
+import * as d3interpolate from "d3-interpolate"
 
 import get from "lodash.get"
 
@@ -344,7 +345,7 @@ export const PieGraph = props => {
   )
 }
 
-const Slice = React.memo(({ state, data, radius, index, onMouseMove, ...props }) => {
+const Slice = React.memo(({ state, data, radius, index, onMouseMove, endAngle, startAngle, padAngle }) => {
 
   const zeroArc = React.useMemo(() => {
     return d3shape.arc()
@@ -362,26 +363,39 @@ const Slice = React.memo(({ state, data, radius, index, onMouseMove, ...props })
 
   const ref = React.useRef();
 
+  const arcData = React.useMemo(() => {
+    return { endAngle, startAngle, padAngle };
+  }, [endAngle, startAngle, padAngle])
+
+console.log("arcData:", arcData)
+
   React.useEffect(() => {
     if (state === "entering") {
       d3select(ref.current)
-        .attr("d", zeroArc(props))
+        .attr("d", zeroArc(arcData))
         .transition().duration(1000)
-          .attr("d", arc(props))
+          .attr("d", arc(arcData))
           .attr("fill", data.color);
     }
     else if (state === "exiting") {
       d3select(ref.current)
         .transition().duration(1000)
-          .attr("d", zeroArc(props));
+          .attr("d", zeroArc(arcData));
     }
     else {
       d3select(ref.current)
         .transition().duration(1000)
-          .attr("d", arc(props))
-          .attr("fill", data.color);
+          .attr("d", arc(arcData))
+          .attr("fill", data.color)
+          // .attrTween("d", d => {
+          //   const start = { startAngle: 0, endAngle: 0 };
+          //   const interpolate = d3.interpolate(start, d);
+          //     return t => {
+          //       return arc(interpolate(t));
+          //     };
+          // });
     }
-  }, [ref, zeroArc, arc, data, props, state]);
+  }, [ref, zeroArc, arc, data, arcData, state]);
 
   const _onMouseMove = React.useCallback(e => {
     onMouseMove(e, { ...data });
@@ -396,6 +410,8 @@ const Slice = React.memo(({ state, data, radius, index, onMouseMove, ...props })
 const Pie = React.memo(({ pie, dx, dy, ms, state, label, ...props }) => {
 
   const ref = React.useRef();
+
+console.log("STATE:", state, label, pie)
 
   React.useEffect(() => {
     if (state === "entering") {
