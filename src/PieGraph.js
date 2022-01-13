@@ -5,7 +5,7 @@ import { select as d3select } from "d3-selection"
 import { format as d3format } from "d3-format"
 import { sum as d3sum, extent as d3extent, range as d3range } from "d3-array"
 import * as d3shape from "d3-shape"
-import * as d3interpolate from "d3-interpolate"
+import { interpolate as d3interpolate } from "d3-interpolate"
 
 import get from "lodash.get"
 
@@ -345,57 +345,57 @@ export const PieGraph = props => {
   )
 }
 
-const Slice = React.memo(({ state, data, radius, index, onMouseMove, endAngle, startAngle, padAngle }) => {
+const Slice = React.memo(({ state, data, radius, index, onMouseMove,
+                            endAngle, startAngle, padAngle }) => {
 
-  const zeroArc = React.useMemo(() => {
-    return d3shape.arc()
-      .outerRadius(1)
-      .innerRadius(0)
-      .cornerRadius(0);
-  }, []);
+  // const zeroArc = React.useMemo(() => {
+  //   return d3shape.arc()
+  //     .outerRadius(1)
+  //     .innerRadius(0)
+  //     .cornerRadius(0);
+  // }, []);
 
   const arc = React.useMemo(() => {
     return d3shape.arc()
-      .outerRadius(radius)
+      // .outerRadius(radius)
       .innerRadius(0)
       .cornerRadius(0);
   }, [radius]);
 
   const ref = React.useRef();
 
-  const arcData = React.useMemo(() => {
-    return { endAngle, startAngle, padAngle };
-  }, [endAngle, startAngle, padAngle])
-
-console.log("arcData:", arcData)
-
   React.useEffect(() => {
     if (state === "entering") {
       d3select(ref.current)
-        .attr("d", zeroArc(arcData))
+        .datum({ endAngle, startAngle, padAngle, outerRadius: radius })
+        .attr("d", arc({ endAngle, startAngle, padAngle, outerRadius: 0.1 }))
         .transition().duration(1000)
-          .attr("d", arc(arcData))
+          .attr("d", arc({ endAngle, startAngle, padAngle, outerRadius: radius }))
           .attr("fill", data.color);
     }
     else if (state === "exiting") {
       d3select(ref.current)
         .transition().duration(1000)
-          .attr("d", zeroArc(arcData));
+          .attr("d", arc({ endAngle, startAngle, padAngle, outerRadius: 0.1 }));
     }
     else {
       d3select(ref.current)
         .transition().duration(1000)
-          .attr("d", arc(arcData))
+          // .attr("d", arc(arcData))
           .attr("fill", data.color)
-          // .attrTween("d", d => {
-          //   const start = { startAngle: 0, endAngle: 0 };
-          //   const interpolate = d3.interpolate(start, d);
-          //     return t => {
-          //       return arc(interpolate(t));
-          //     };
-          // });
+          .attrTween("d", d => {
+            const i1 = d3interpolate(d.startAngle, startAngle);
+            const i2 = d3interpolate(d.endAngle, endAngle);
+            const i3 = d3interpolate(d.outerRadius, radius)
+            return t => {
+              d.startAngle = i1(t);
+              d.endAngle = i2(t);
+              d.outerRadius = i3(t);
+              return arc(d);
+            };
+          });
     }
-  }, [ref, zeroArc, arc, data, arcData, state]);
+  }, [ref, arc, data, radius, endAngle, startAngle, padAngle, state]);
 
   const _onMouseMove = React.useCallback(e => {
     onMouseMove(e, { ...data });
@@ -410,8 +410,6 @@ console.log("arcData:", arcData)
 const Pie = React.memo(({ pie, dx, dy, ms, state, label, ...props }) => {
 
   const ref = React.useRef();
-
-console.log("STATE:", state, label, pie)
 
   React.useEffect(() => {
     if (state === "entering") {
