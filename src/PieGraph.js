@@ -365,9 +365,14 @@ const Slice = React.memo(({ state, data, radius, index, onMouseMove,
   const ref = React.useRef();
 
   React.useEffect(() => {
+    d3select(ref.current)
+      .datum({ endAngle, startAngle, padAngle, outerRadius: radius })
+  }, [])
+
+  React.useEffect(() => {
     if (state === "entering") {
       d3select(ref.current)
-        .datum({ endAngle, startAngle, padAngle, outerRadius: radius })
+        // .datum({ endAngle, startAngle, padAngle, outerRadius: radius })
         .attr("d", arc({ endAngle, startAngle, padAngle, outerRadius: 0.1 }))
         .transition().duration(1000)
           .attr("d", arc({ endAngle, startAngle, padAngle, outerRadius: radius }))
@@ -381,7 +386,6 @@ const Slice = React.memo(({ state, data, radius, index, onMouseMove,
     else {
       d3select(ref.current)
         .transition().duration(1000)
-          // .attr("d", arc(arcData))
           .attr("fill", data.color)
           .attrTween("d", d => {
             const i1 = d3interpolate(d.startAngle, startAngle);
@@ -393,7 +397,7 @@ const Slice = React.memo(({ state, data, radius, index, onMouseMove,
               d.outerRadius = i3(t);
               return arc(d);
             };
-          });
+          })
     }
   }, [ref, arc, data, radius, endAngle, startAngle, padAngle, state]);
 

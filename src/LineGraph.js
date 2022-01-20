@@ -284,6 +284,8 @@ export const LineGraph = props => {
       return [u, e];
     }, [{}, {}]);
 
+console.log("X DOMAIN:", xDomain);
+
     const sliceData = xDomain.reduce((a, c) => {
       a[c] = [];
       return a;
