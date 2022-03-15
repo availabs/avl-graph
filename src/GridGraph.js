@@ -371,7 +371,7 @@ export const GridGraph = props => {
   } = HoverCompData;
 
   return (
-    <div className="w-full h-full relative avl-graph-container" ref={ ref }>
+    <div className="w-full h-full avl-graph-container" ref={ ref }>
 
       <svg className={ `w-full h-full block avl-graph ${ className }` }>
 

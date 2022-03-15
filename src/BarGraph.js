@@ -38,7 +38,9 @@ const DefaultHoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) =
       <div className="font-bold text-lg leading-6 border-b-2 mb-1 pl-2">
         { indexFormat(get(data, "index", null)) }
       </div>
-      { keys.slice().reverse().map(key => (
+      { keys.slice().reverse()
+        .filter(key => get(data, ["data", key], false))
+        .map(key => (
           <div key={ key } className={ `
             flex items-center px-2 border-2 rounded transition
             ${ data.key === key ? "border-current" : "border-transparent" }
@@ -321,7 +323,7 @@ export const BarGraph = props => {
   } = HoverCompData;
 
   return (
-    <div className="w-full h-full relative avl-graph-container" ref={ ref }>
+    <div className="w-full h-full avl-graph-container" ref={ ref }>
 
       <svg className={ `w-full h-full block avl-graph ${ className }` }>
         { !barData.current.length ? null :

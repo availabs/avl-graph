@@ -313,7 +313,7 @@ export const PieGraph = props => {
   } = HoverCompData;
 
   return (
-    <div ref={ ref } className="w-full h-full relative avl-graph-container">
+    <div ref={ ref } className="w-full h-full avl-graph-container">
 
       <svg className={ `w-full h-full block avl-graph ${ className }` }>
         <g onMouseLeave={ onMouseLeave }
