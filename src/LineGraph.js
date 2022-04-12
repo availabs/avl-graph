@@ -437,7 +437,7 @@ console.log("X DOMAIN:", xDomain);
   } = HoverCompData;
 
   return (
-    <div className="w-full h-full relative avl-graph-container" ref={ ref }>
+    <div className="w-full h-full relative avl-graph-container relative" ref={ ref }>
 
       <svg className={ `w-full h-full block avl-graph ${ className }` }>
         { !lineData.current.length ? null :

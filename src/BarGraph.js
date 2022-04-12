@@ -323,7 +323,7 @@ export const BarGraph = props => {
   } = HoverCompData;
 
   return (
-    <div className="w-full h-full avl-graph-container" ref={ ref }>
+    <div className="w-full h-full avl-graph-container relative" ref={ ref }>
 
       <svg className={ `w-full h-full block avl-graph ${ className }` }>
         { !barData.current.length ? null :
