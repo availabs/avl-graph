@@ -22,7 +22,8 @@ import {
   Identity,
   EmptyArray,
   EmptyObject,
-  DefaultMargin
+  DefaultMargin,
+  strictNaN
 } from "./utils"
 
 import "./avl-graph.css"
@@ -154,7 +155,7 @@ export const BarGraph = props => {
       if (groupMode === "stacked") {
         yDomain = data.reduce((a, c) => {
           const y = keys.reduce((a, k) => a + get(c, k, 0), 0);
-          if (y) {
+          if (!strictNaN(y)) {
             return [0, Math.max(y, get(a, 1, 0))];
           }
           return a;
@@ -163,7 +164,7 @@ export const BarGraph = props => {
       else if (groupMode === "grouped") {
         yDomain = data.reduce((a, c) => {
           const y = keys.reduce((a, k) => Math.max(a, get(c, k, 0)), 0);
-          if (y) {
+          if (!strictNaN(y)) {
             return [0, Math.max(y, get(a, 1, 0))];
           }
           return a;
@@ -195,9 +196,11 @@ export const BarGraph = props => {
       step = xScale.step(),
       outer = xScale.paddingOuter() * step;
 
+    const zeroYdomain = (yDomain[0] === 0) && (yDomain[1] === 0);
+
     const yScale = scaleLinear()
       .domain(yDomain)
-      .range([adjustedHeight, 0]);
+      .range([adjustedHeight, zeroYdomain ? adjustedHeight : 0]);
 
     const colorFunc = getColorFunc(colors);
 

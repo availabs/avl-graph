@@ -29,6 +29,8 @@ export const EmptyArray = [];
 
 export const EmptyObject = {};
 
+export const strictNaN = v => (v === null) || isNaN(v);
+
 export const DefaultMargin = {
   left: 70,
   top: 20,
