@@ -242,7 +242,7 @@ export const GridGraph = props => {
       pointPositions[index] = {};
 
       const pointsForIndex = get(pointsMap, index, {});
-      const boundsForIndex = get(boundsMap, index, {})
+      const boundsForIndex = get(boundsMap, index, {});
 
       delete exiting[index];
 
