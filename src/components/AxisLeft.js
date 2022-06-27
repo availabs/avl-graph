@@ -3,7 +3,7 @@ import React from "react"
 import { select as d3select } from "d3-selection"
 import { transition as d3transition } from "d3-transition"
 import { axisLeft as d3AxisLeft } from "d3-axis"
-import { scaleLinear } from "d3-scale"
+// import { scaleLinear } from "d3-scale"
 
 export const AxisLeft = props => {
   const {
