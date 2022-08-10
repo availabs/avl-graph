@@ -31,11 +31,11 @@ export const AxisLeft = props => {
 }
 
 const renderAxisLeft = (ref,
-                    adjustedWidth,
-                    adjustedHeight,
-                    domain, scale, type, format,
-                    secondary, label,
-                    margin, ticks, tickValues) => {
+                        adjustedWidth,
+                        adjustedHeight,
+                        domain, scale, type, format,
+                        secondary, label,
+                        margin, ticks, tickValues) => {
 
   const { left, top } = margin;
 

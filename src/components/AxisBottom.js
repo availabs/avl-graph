@@ -6,8 +6,8 @@ import { axisBottom as d3AxisBottom } from "d3-axis"
 
 export const AxisBottom = props => {
   const {
-    adjustedWidth, adjustedHeight,
-    domain, scale, format,
+    adjustedWidth, adjustedHeight, type = "band",
+    domain, scale, format, tickValues,
     secondary, label, margin, tickDensity = 2
   } = props;
 
@@ -15,38 +15,62 @@ export const AxisBottom = props => {
 
   React.useEffect(() => {
     if (ref.current) {
-      renderAxisBottom(ref.current,
-        adjustedWidth, adjustedHeight,
-        domain, scale, format,
+      renderAxisBottom({
+        ref: ref.current,
+        adjustedWidth, adjustedHeight, type,
+        domain, scale, format, tickValues,
         secondary, label, margin, tickDensity
-      );
+      });
     }
-  }, [adjustedWidth, adjustedHeight,
-      domain, scale, format,
+  }, [adjustedWidth, adjustedHeight, type,
+      domain, scale, format, tickValues,
       secondary, label, margin, tickDensity]
   );
 
   return <g ref={ ref }/>;
 }
 
-const renderAxisBottom = (ref,
+const renderAxisBottom = ({ ref,
                     adjustedWidth,
                     adjustedHeight,
                     domain, scale, format,
                     secondary, label,
-                    margin, tickDensity) => {
+                    tickValues, type,
+                    margin, tickDensity }) => {
 
   const { left, top, bottom } = margin;
 
-  const ticks = Math.ceil(adjustedWidth / 100 * tickDensity),
-    mod = Math.ceil(domain.length / ticks),
-    halfMod = Math.floor(mod * 0.5),
+  if (!tickValues && (type === "band")) {
+    const ticks = Math.ceil(adjustedWidth / 100 * tickDensity),
+      mod = Math.ceil(domain.length / ticks),
+      halfMod = Math.floor(mod * 0.5);
 
     tickValues = domain.filter((d, i) =>
       (mod === 1 || (i > 0)) &&
       (mod === 1 || (i < (domain.length - 1))) &&
       !((i - halfMod) % mod)
     );
+  }
+  else if (!tickValues && (type === "ordinal")) {
+    const density = 100 / tickDensity;
+    let tick = 0;
+    tickValues = [];
+
+    for (let i = 0; i < domain.length; ++i) {
+      if (i > 0) {
+        tick += scale(domain[i]) - scale(domain[i - 1]);
+      }
+      if (!tickValues.length && (tick >= density * 0.5)) {
+        tickValues.push(domain[i]);
+        tick = 0;
+      }
+      else if (tick >= density) {
+        tickValues.push(domain[i]);
+        tick = 0;
+      }
+    }
+  }
+
 
   const axisBottom = d3AxisBottom(scale)
     .tickValues(tickValues)

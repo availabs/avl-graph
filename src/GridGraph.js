@@ -84,7 +84,8 @@ const InitialState = {
   // exitingData: [],
   xDomain: [],
   yDomain: [],
-  tickValues: [],
+  xTickValues: [],
+  yTickValues: [],
   xScale: null,
   yScale: null,
   adjustedWidth: 0,
@@ -103,11 +104,32 @@ const InitialState = {
 //   }
 // }
 
+
+const calcOrdinalScale = (dataSize, graphSize) => {
+  const sScale = scaleLinear()
+    .domain([0, dataSize])
+    .range([0, graphSize]);
+
+  let pos = 0;
+  let next = 0;
+
+  function scaler(value) {
+    const s = sScale(value);
+    next = pos + s;
+    return pos + s * 0.5;
+  }
+  scaler.step = function() {
+    pos = next;
+  }
+  return scaler;
+}
+
 export const GridGraph = props => {
 
   const {
     data = EmptyArray,
     keys = EmptyArray,
+    keyWidths = EmptyObject,
     indexBy = "index",
     margin = EmptyObject,
     hoverComp = EmptyObject,
@@ -182,22 +204,29 @@ export const GridGraph = props => {
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
+    const xDomain = keys;
+
+    const dataWidth = keys.reduce((a, c) => {
+      return a + get(keyWidths, c, 1);
+    }, 0);
+
     const [yDomain, dataHeight] = data.reduce((a, c) => {
-      let [yd, dh] = a;
+      let [yd, dh, dw] = a;
       yd.push(c[indexBy]);
       const h = +get(c, "height", 1);
-      return [yd, dh + h];
+      const w = +get(c, "width", 1);
+      return [yd, dh + h, dw + w];
     }, [[], 0]);
-
-    const xDomain = keys;
 
     const indexes = data.map(d => d[indexBy]);
 
-    const xScale = scaleBand()
-      .domain(xDomain)
+    const wScale = scaleLinear()
+      .domain([0, dataWidth])
       .range([0, adjustedWidth]);
 
-    const bandwidth = xScale.bandwidth();
+    const xRange = [0];
+    const xScale = scaleOrdinal()
+      .domain(["tick-1", ...xDomain, "tick-2"]);
 
     const hScale = scaleLinear()
       .domain([0, dataHeight])
@@ -207,7 +236,7 @@ export const GridGraph = props => {
     const yScale = scaleOrdinal()
       .domain(["tick-1", ...yDomain, "tick-2"]);
 
-    const tickValues = [];
+    const yTickValues = [];
 
     const colorFunc = getColorFunc(colors);
 
@@ -237,6 +266,8 @@ export const GridGraph = props => {
 
     gridData.current = data.map((d, i) => {
 
+      let left = 0;
+
       const index = d[indexBy];
 
       pointPositions[index] = {};
@@ -250,12 +281,21 @@ export const GridGraph = props => {
 
       yRange.push(top + height * 0.5);
       if (height >= 14) {
-        tickValues.push(index);
+        yTickValues.push(index);
       }
 
       const grid = xDomain.map((x, ii) => {
         const value = get(d, x, null),
+          width = wScale(get(keyWidths, x, 1)),
+          xLeft = left,
           color = value === null ? "#000" : colorFunc(value, ii, d, x);
+
+        if (i === 0) {
+          xRange.push(xLeft + width * 0.5);
+        }
+
+        left += width;
+
         indexData[x][index] = { value, color };
 
         if (x in pointsForIndex) {
@@ -263,7 +303,7 @@ export const GridGraph = props => {
           const point = {
             ...DefaultPoint,
             ...rest,
-            cx: ii * bandwidth + bandwidth * 0.5,
+            cx: xLeft + width * 0.5,
             cy: top + height * 0.5,
             key: `${ index }-${ key }`
           }
@@ -279,13 +319,13 @@ export const GridGraph = props => {
 
         if (bounds.includes(x)) {
           if (index in boundsData) {
-            boundsData[index].width = ii * bandwidth + bandwidth - boundsData[index].x;
+            boundsData[index].width = xLeft + width - boundsData[index].x;
           }
           else {
             boundsData[index] = {
               ...DefaultBoundsRect,
               ...rest,
-              x: ii * bandwidth,
+              x: xLeft,
               y: top,
               height,
               key: index
@@ -296,10 +336,10 @@ export const GridGraph = props => {
         return {
           data: d,
           key: x,
-          width: bandwidth,
+          width,
           height,
           index,
-          x: ii * bandwidth,
+          x: xLeft,
           color,
           value,
           indexData: indexData[x],
@@ -334,6 +374,9 @@ export const GridGraph = props => {
 
     boundRects.current = Object.values(boundsData);
 
+    xRange.push(adjustedWidth);
+    xScale.range(xRange);
+
     yRange.push(adjustedHeight);
     yScale.range(yRange);
 
@@ -347,14 +390,12 @@ export const GridGraph = props => {
 
     setState({
       xDomain, yDomain, xScale, yScale,
-      adjustedWidth, adjustedHeight, tickValues
+      adjustedWidth, adjustedHeight, yTickValues
     });
-  }, [data, keys, width, height,
-      Margin, gridData, colors, indexBy]
-  );
+  }, [data, keys, width, height, Margin, gridData, colors, indexBy]);
 
   const {
-    xDomain, xScale, yDomain, yScale, tickValues,
+    xDomain, xScale, yDomain, yScale, yTickValues,
     ...restOfState
   } = state;
 
@@ -382,13 +423,14 @@ export const GridGraph = props => {
                 margin={ Margin }
                 scale={ xScale }
                 domain={ xDomain }
+                type="ordinal"
                 { ...axisBottom }/>
             }
             { !axisLeft ? null :
               <AxisLeft { ...restOfState }
                 margin={ Margin }
                 scale={ yScale }
-                tickValues={ tickValues }
+                tickValues={ yTickValues }
                 domain={ yDomain }
                 type="ordinal"
                 { ...axisLeft }/>
