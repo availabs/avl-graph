@@ -360,14 +360,14 @@ const Slice = React.memo(({ state, data, radius, index, onMouseMove,
       // .outerRadius(radius)
       .innerRadius(0)
       .cornerRadius(0);
-  }, [radius]);
+  }, []);
 
   const ref = React.useRef();
 
   React.useEffect(() => {
     d3select(ref.current)
       .datum({ endAngle, startAngle, padAngle, outerRadius: radius })
-  }, [])
+  }, [endAngle, startAngle, padAngle, radius])
 
   React.useEffect(() => {
     if (state === "entering") {

@@ -284,7 +284,7 @@ export const LineGraph = props => {
       return [u, e];
     }, [{}, {}]);
 
-console.log("X DOMAIN:", xDomain);
+// console.log("X DOMAIN:", xDomain);
 
     const sliceData = xDomain.reduce((a, c) => {
       a[c] = [];
@@ -417,7 +417,7 @@ console.log("X DOMAIN:", xDomain);
       xDomain, yDomain, xScale, yScale, barData, indexBy, secScale, secDomain,
       adjustedWidth, adjustedHeight, sliceData, secSliceData, lineTotals
     });
-  }, [data, width, height, Margin, lineData, colors, padding, exitData, indexBy, secondary]);
+  }, [data, width, height, Margin, lineData, colors, padding, exitData, indexBy, secondary, axisLeft]);
 
   const {
     onMouseMove,

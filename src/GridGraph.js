@@ -2,7 +2,7 @@ import React from "react"
 
 import { scaleBand, scaleLinear, scaleOrdinal } from "d3-scale"
 import { select as d3select } from "d3-selection"
-import { range as d3range } from "d3-array"
+//import { range as d3range } from "d3-array"
 import { format as d3format } from "d3-format"
 
 import get from "lodash.get"
@@ -136,11 +136,11 @@ export const GridGraph = props => {
     axisBottom = null,
     axisLeft = null,
     className = "",
-    paddingInner = 0,
-    paddingOuter = 0,
-    padding,
+    // paddingInner = 0,
+    // paddingOuter = 0,
+    // padding,
     colors,
-    groupMode = "stacked",
+    // groupMode = "stacked",
     points = EmptyArray,
     bounds = EmptyArray,
     showAnimations = true
@@ -392,7 +392,9 @@ export const GridGraph = props => {
       xDomain, yDomain, xScale, yScale,
       adjustedWidth, adjustedHeight, yTickValues
     });
-  }, [data, keys, width, height, Margin, gridData, colors, indexBy]);
+  }, [data, keys, width, height, Margin, gridData,
+      colors, indexBy, boundsMap, exitData, pointsMap]
+  );
 
   const {
     xDomain, xScale, yDomain, yScale, yTickValues,
@@ -460,7 +462,7 @@ export const GridGraph = props => {
           }
 
           { !hoverData.show ? null :
-            <rect stroke="currentColor" fill="none" strokeWidth="2" width
+            <rect stroke="currentColor" fill="none" strokeWidth="2"
               className="pointer-events-none"
               style={ {
                 transform: `translate(${ hoverData.data.x }px, 0px)`,
@@ -552,7 +554,7 @@ const Grid = ({ x, width, height, color,
           .attr("fill", color);
       }
     }
-  }, [x, width, height, color, state]);
+  }, [x, width, height, color, state, showAnimations]);
 
   const _onMouseMove = React.useCallback(e => {
     onMouseMove(e, { color, key: Key, index, value, data, x, width, indexData, indexes });
@@ -584,7 +586,7 @@ const Horizontal = React.memo(({ grid, top, state, showAnimations, ...props }) =
           .attr("transform", `translate(0 ${ top })`);
       }
     }
-  }, [state, top]);
+  }, [state, top,showAnimations]);
 
   return (
     <g ref={ ref } className="avl-grid-horizontal">
