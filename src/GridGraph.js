@@ -136,6 +136,7 @@ export const GridGraph = props => {
     axisBottom = null,
     axisLeft = null,
     className = "",
+    onClick = null,
     // paddingInner = 0,
     // paddingOuter = 0,
     // padding,
@@ -449,7 +450,8 @@ export const GridGraph = props => {
           { gridData.current.map(({ id, ...rest }) =>
               <Horizontal key={ id } { ...rest }
                 onMouseMove={ onMouseMove }
-                showAnimations={ showAnimations }/>
+                showAnimations={ showAnimations }
+                onClick={ onClick }/>
             )
           }
 
@@ -492,7 +494,7 @@ export const GridGraph = props => {
 }
 
 const Grid = ({ x, width, height, color,
-                state, onMouseMove,
+                state, onMouseMove, onClick,
                 Key, index, value, showAnimations,
                 data, indexData, indexes }) => {
 
@@ -560,9 +562,17 @@ const Grid = ({ x, width, height, color,
     onMouseMove(e, { color, key: Key, index, value, data, x, width, indexData, indexes });
   }, [onMouseMove, color, Key, index, value, data, x, width, indexData, indexes]);
 
+  const _onClick = React.useMemo(() => {
+    if (!onClick) return null;
+    return e => {
+      onClick(e, { key: Key, index, value });
+    }
+  }, [onClick, Key, index, value]);
+
   return (
     <rect ref={ ref } className="avl-grid"
-      onMouseMove={ _onMouseMove }/>
+      onMouseMove={ _onMouseMove }
+      onClick={ _onClick }/>
   )
 }
 
