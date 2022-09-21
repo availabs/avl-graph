@@ -137,6 +137,8 @@ export const GridGraph = props => {
     axisLeft = null,
     className = "",
     onClick = null,
+    bgColor = "#000000",
+    nullColor = "#000000",
     // paddingInner = 0,
     // paddingOuter = 0,
     // padding,
@@ -289,7 +291,7 @@ export const GridGraph = props => {
         const value = get(d, x, null),
           width = wScale(get(keyWidths, x, 1)),
           xLeft = left,
-          color = value === null ? "#000" : colorFunc(value, ii, d, x);
+          color = value === null ? nullColor : colorFunc(value, ii, d, x);
 
         if (i === 0) {
           xRange.push(xLeft + width * 0.5);
@@ -414,6 +416,8 @@ export const GridGraph = props => {
     ...hoverCompRest
   } = HoverCompData;
 
+console.log("GRID:", )
+
   return (
     <div className="w-full h-full avl-graph-container relative" ref={ ref }>
 
@@ -444,7 +448,7 @@ export const GridGraph = props => {
         <g style={ { transform: `translate(${ Margin.left }px, ${ Margin.top }px)` } }
           onMouseLeave={ onMouseLeave }>
 
-          <rect x="0" y="0" fill="#000"
+          <rect x="0" y="0" fill={ bgColor }
             width={ state.adjustedWidth } height={ state.adjustedHeight }/>
 
           { gridData.current.map(({ id, ...rest }) =>
