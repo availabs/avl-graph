@@ -139,6 +139,7 @@ export const GridGraph = props => {
     onClick = null,
     bgColor = "#000000",
     nullColor = "#000000",
+    hoverPoints = false,
     // paddingInner = 0,
     // paddingOuter = 0,
     // padding,
@@ -405,6 +406,7 @@ export const GridGraph = props => {
   } = state;
 
   const {
+    onMouseOver,
     onMouseMove,
     onMouseLeave,
     hoverData
@@ -415,8 +417,6 @@ export const GridGraph = props => {
     position,
     ...hoverCompRest
   } = HoverCompData;
-
-console.log("GRID:", )
 
   return (
     <div className="w-full h-full avl-graph-container relative" ref={ ref }>
@@ -461,13 +461,23 @@ console.log("GRID:", )
 
           { !gridData.current.length ? null :
             <>
-              { pointData.current.map(point => <circle { ...point }/>) }
-              { spanLines.current.map(line => <line { ...line }/>) }
-              { boundRects.current.map(rect => <rect { ...rect }/>) }
+              <g style={ { pointerEvents: hoverPoints ? "auto" : "none" } }>
+                { pointData.current.map(point => (
+                    <Point { ...point }
+                      onMouseOver={ onMouseOver }
+                      showHover={ hoverPoints }
+                    />
+                  ))
+                }
+              </g>
+              <g style={ { pointerEvents: "none" } }>
+                { spanLines.current.map(line => <line { ...line }/>) }
+                { boundRects.current.map(rect => <rect { ...rect }/>) }
+              </g>
             </>
           }
 
-          { !hoverData.show ? null :
+          { !hoverData.show || (hoverData.target !== "graph") ? null :
             <rect stroke="currentColor" fill="none" strokeWidth="2"
               className="pointer-events-none"
               style={ {
@@ -488,12 +498,26 @@ console.log("GRID:", )
         svgHeight={ height }
         margin={ Margin }>
         { !hoverData.data ? null :
-          <HoverComp data={ hoverData.data } keys={ keys }
-            { ...hoverCompRest }/>
+            <HoverComp target={ hoverData.target }
+              data={ hoverData.data } keys={ keys } { ...hoverCompRest }
+            />
         }
       </HoverCompContainer>
 
     </div>
+  )
+}
+
+const Point = ({ showHover, onMouseOver, data, cx, cy, ...rest }) => {
+
+  const _onMouseOver = React.useCallback(e => {
+    onMouseOver(e, data, { pos: [cx, cy], target: "point" });
+  }, [onMouseOver, cx, cy, data]);
+
+  return (
+    <circle { ...rest } cx={ cx } cy={ cy }
+      onMouseOver={ showHover ? _onMouseOver : null }
+    />
   )
 }
 

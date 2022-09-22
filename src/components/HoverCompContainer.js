@@ -72,7 +72,8 @@ const Reducer = (state, action) => {
 const InitialState = {
   show: false,
   pos: [0, 0],
-  data: null
+  data: null,
+  target: "graph"
 }
 
 export const useHoverComp = ref => {
@@ -80,13 +81,29 @@ export const useHoverComp = ref => {
   const [hoverData, dispatch] = React.useReducer(Reducer, InitialState),
     updateHoverData = React.useMemo(() => throttle(dispatch, 25), [dispatch]);
 
-  const onMouseMove = React.useCallback((e, data) => {
+  const onMouseOver = React.useCallback((e, data, { pos = null, target = "graph" } = {}) => {
     const rect = ref.current.getBoundingClientRect();
     updateHoverData({
       type: UPDATE_DATA,
       show: true,
-      pos: [e.clientX - rect.x, e.clientY - rect.y],
-      data
+      target,
+      data,
+      pos: pos ?
+        [pos.x - rect.x, pos.y - rect.y] :
+        [e.clientX - rect.x, e.clientY - rect.y]
+    });
+  }, [ref, updateHoverData]);
+
+  const onMouseMove = React.useCallback((e, data, { pos = null, target = "graph" } = {}) => {
+    const rect = ref.current.getBoundingClientRect();
+    updateHoverData({
+      type: UPDATE_DATA,
+      show: true,
+      target,
+      data,
+      pos: pos ?
+        [pos.x - rect.x, pos.y - rect.y] :
+        [e.clientX - rect.x, e.clientY - rect.y]
     });
   }, [ref, updateHoverData]);
 
@@ -96,6 +113,7 @@ export const useHoverComp = ref => {
 
   return {
     hoverData,
+    onMouseOver,
     onMouseMove,
     onMouseLeave
   }
