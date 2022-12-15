@@ -129,7 +129,7 @@ export const GridGraph = props => {
   const {
     data = EmptyArray,
     keys = EmptyArray,
-    keyWidths = {},
+    keyWidths = EmptyObject,
     indexBy = "index",
     margin = EmptyObject,
     hoverComp = EmptyObject,
