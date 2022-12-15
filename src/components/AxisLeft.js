@@ -7,7 +7,7 @@ import { axisLeft as d3AxisLeft } from "d3-axis"
 
 export const AxisLeft = props => {
   const {
-    adjustedWidth, adjustedHeight,
+    adjustedWidth, adjustedHeight, showGridLines = true,
     domain, scale, format, type = "linear",
     secondary, label, margin, ticks = 10, tickValues
   } = props;
@@ -19,10 +19,11 @@ export const AxisLeft = props => {
       renderAxisLeft(ref.current,
         adjustedWidth, adjustedHeight,
         domain, scale, type, format,
-        secondary, label, margin, ticks, tickValues
+        secondary, label, margin,
+        ticks, tickValues, showGridLines
       );
     }
-  }, [adjustedWidth, adjustedHeight,
+  }, [adjustedWidth, adjustedHeight, showGridLines,
       domain, scale, type, format,
       secondary, label, margin, ticks, tickValues]
   );
@@ -35,7 +36,7 @@ const renderAxisLeft = (ref,
                         adjustedHeight,
                         domain, scale, type, format,
                         secondary, label,
-                        margin, ticks, tickValues) => {
+                        margin, ticks, tickValues, showGridLines) => {
 
   const { left, top } = margin;
 
@@ -124,7 +125,7 @@ const renderAxisLeft = (ref,
       .attr("font-size", "1rem")
       .text(d => d);
 
-  if (type !== "linear") return;
+  if (type !== "linear" || !showGridLines) return;
 
   const gridLines = group.selectAll("line.grid-line"),
     numGridLines = gridLines.size(),

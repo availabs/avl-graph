@@ -7,8 +7,8 @@ import { axisRight as d3AxisRight } from "d3-axis"
 
 export const AxisRight = props => {
   const {
-    adjustedWidth, adjustedHeight,
-    domain, scale, format,
+    adjustedWidth, adjustedHeight, showGridLines = true,
+    domain, scale, format, type = "linear",
     secondary, label, margin, ticks = 10
   } = props;
 
@@ -18,12 +18,12 @@ export const AxisRight = props => {
     if (ref.current) {
       renderAxisRight(ref.current,
         adjustedWidth, adjustedHeight,
-        domain, scale, format,
-        secondary, label, margin, ticks
+        domain, scale, type, format,
+        secondary, label, margin, ticks, showGridLines
       );
     }
-  }, [adjustedWidth, adjustedHeight,
-      domain, scale, format,
+  }, [adjustedWidth, adjustedHeight, showGridLines,
+      domain, scale, type, format,
       secondary, label, margin, ticks]
   );
 
@@ -33,9 +33,9 @@ export const AxisRight = props => {
 const renderAxisRight = (ref,
                     adjustedWidth,
                     adjustedHeight,
-                    domain, scale, format,
+                    domain, scale, type, format,
                     secondary, label,
-                    margin, ticks) => {
+                    margin, ticks, showGridLines) => {
 
   const { left, right, top } = margin;
 
@@ -120,6 +120,8 @@ const renderAxisRight = (ref,
       .attr("fill", "currentColor")
       .attr("font-size", "1rem")
       .text(d => d);
+
+  if (type !== "linear" || !showGridLines) return;
 
   const gridLines = group.selectAll("line.grid-line"),
     numGridLines = gridLines.size(),

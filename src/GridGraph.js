@@ -129,7 +129,7 @@ export const GridGraph = props => {
   const {
     data = EmptyArray,
     keys = EmptyArray,
-    keyWidths = EmptyObject,
+    keyWidths = {},
     indexBy = "index",
     margin = EmptyObject,
     hoverComp = EmptyObject,
@@ -210,7 +210,9 @@ export const GridGraph = props => {
 
     const xDomain = keys;
 
-    const dataWidth = keys.reduce((a, c) => {
+    let dataWidth = keys.length;
+
+    dataWidth = keys.reduce((a, c) => {
       return a + get(keyWidths, c, 1);
     }, 0);
 

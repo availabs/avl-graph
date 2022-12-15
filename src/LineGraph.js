@@ -27,29 +27,35 @@ import {
   DefaultAxis
 } from "./utils"
 
-const DefaultHoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals }) => {
+const DefaultHoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals, showTotals = true }) => {
   const theme = useTheme();
   return (
-    <div className={ `
-        grid grid-cols-1 gap-1 px-2 pt-1 pb-2 rounded
+    <div
+      className={ `
+        flex flex-col px-2 pt-1 pb-2 rounded
         ${ theme.accent1 }
-      ` }>
+      ` }
+    >
       <div className="border-b-2 px-2 flex">
         <div className="font-bold text-lg leading-6 flex-1">
           { xFormat(get(data, "x", null), data) }
         </div>
-        <div>
-          (Line Total)
-        </div>
+        { !showTotals ? null :
+          <div>
+            (Line Total)
+          </div>
+        }
       </div>
       <div className="px-2">
         { data.data.sort((a, b) => lineTotals[b.id] - lineTotals[a.id])
             .map(({ id, y, color, isMax, ...rest }) => (
-              <div key={ id } className={ `
-                  rounded border-2 grid grid-cols-3
+              <div key={ id }
+                className={ `
+                  rounded border-2 flex
                   ${ isMax ? "border-current" : "border-transparent" }
-                ` }>
-                <div className="col-span-1">
+                ` }
+              >
+                <div>
                   <div className={ `
                     flex items-center
                     ${ isMax ? "border-current" : "border-transparent" }
@@ -68,20 +74,25 @@ const DefaultHoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals }) => {
                     </div>
                   </div>
                 </div>
-                <div className="col-span-1">
+
+                <div>
                   <div className={ `
                     text-right pr-4 transition
                   ` }>
                     { yFormat(y, rest) }
                   </div>
                 </div>
-                <div className="col-span-1">
-                  <div className={ `
-                    text-right transition pr-2
-                  ` }>
-                    ({ yFormat(lineTotals[id], rest) })
+
+                { !showTotals ? null :
+                  <div>
+                    <div className={ `
+                      text-right transition pr-2
+                    ` }>
+                      ({ yFormat(lineTotals[id], rest) })
+                    </div>
                   </div>
-                </div>
+                }
+
               </div>
             ))
         }
@@ -136,7 +147,8 @@ const DefaultHoverCompData = {
   idFormat: Identity,
   xFormat: Identity,
   yFormat: Identity,
-  position: "side"
+  position: "side",
+  showTotals: true
 }
 
 const InitialState = {
@@ -223,7 +235,7 @@ export const LineGraph = props => {
     if (xDomain.length) {
       yDomain = data.reduce((a, c) => {
         const y = c.data.reduce((a, c) => Math.max(a, +c.y), 0);
-        if (y) {
+        if (!isNaN(y)) {
           return [aLeft.min, Math.max(y, get(a, 1, 0))];
         }
         return a;
@@ -234,7 +246,7 @@ export const LineGraph = props => {
     if (xDomain.length) {
       secDomain = secondary.reduce((a, c) => {
         const y = c.data.reduce((a, c) => Math.max(a, +c.y), 0);
-        if (y) {
+        if (!isNaN(y)) {
           return [0, Math.max(y, get(a, 1, 0))];
         }
         return a;
@@ -264,12 +276,19 @@ export const LineGraph = props => {
 			.x(d => xScale(d.x))
 			.y(d => secScale(d.y));
 
-		const yEnter = yScale(0),
+		const yEnter = yScale(yDomain[0]),
       baseLineGenerator = d3line()
         .curve(curveCatmullRom)
   			.x(d => xScale(d))
   			.y(d => yEnter),
       baseLine = baseLineGenerator(xDomain);
+
+		const secEnter = secScale(secDomain[0]),
+      secBaseLineGenerator = d3line()
+        .curve(curveCatmullRom)
+  			.x(d => xScale(d))
+  			.y(d => secEnter),
+      secBaseLine = secBaseLineGenerator(xDomain);
 
     const colorFunc = getColorFunc(colors);
 
@@ -373,7 +392,7 @@ export const LineGraph = props => {
 
       return {
         line: secGenerator(data),
-        baseLine,
+        baseLine: secBaseLine,
         color,
         state: get(secUpdating, d[indexBy], "entering"),
         id: d[indexBy].toString()
