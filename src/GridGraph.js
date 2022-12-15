@@ -1,6 +1,6 @@
 import React from "react"
 
-import { scaleBand, scaleLinear, scaleOrdinal } from "d3-scale"
+import { /*scaleBand,*/ scaleLinear, scaleOrdinal } from "d3-scale"
 import { select as d3select } from "d3-selection"
 //import { range as d3range } from "d3-array"
 import { format as d3format } from "d3-format"
@@ -105,24 +105,24 @@ const InitialState = {
 // }
 
 
-const calcOrdinalScale = (dataSize, graphSize) => {
-  const sScale = scaleLinear()
-    .domain([0, dataSize])
-    .range([0, graphSize]);
+// const calcOrdinalScale = (dataSize, graphSize) => {
+//   const sScale = scaleLinear()
+//     .domain([0, dataSize])
+//     .range([0, graphSize]);
 
-  let pos = 0;
-  let next = 0;
+//   let pos = 0;
+//   let next = 0;
 
-  function scaler(value) {
-    const s = sScale(value);
-    next = pos + s;
-    return pos + s * 0.5;
-  }
-  scaler.step = function() {
-    pos = next;
-  }
-  return scaler;
-}
+//   function scaler(value) {
+//     const s = sScale(value);
+//     next = pos + s;
+//     return pos + s * 0.5;
+//   }
+//   scaler.step = function() {
+//     pos = next;
+//   }
+//   return scaler;
+// }
 
 export const GridGraph = props => {
 
@@ -399,8 +399,9 @@ export const GridGraph = props => {
       adjustedWidth, adjustedHeight, yTickValues
     });
   }, [data, keys, width, height, Margin, gridData,
-      colors, indexBy, boundsMap, exitData, pointsMap]
-  );
+      colors, indexBy, boundsMap, exitData, pointsMap,
+      keyWidths, nullColor
+  ]);
 
   const {
     xDomain, xScale, yDomain, yScale, yTickValues,
