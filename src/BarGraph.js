@@ -5,6 +5,7 @@ import { select as d3select } from "d3-selection"
 import { range as d3range } from "d3-array"
 import { format as d3format } from "d3-format"
 
+import deepequal from "deepequal"
 import get from "lodash.get"
 
 import { useTheme, useSetSize } from "@availabs/avl-components"
@@ -133,6 +134,8 @@ export const BarGraph = props => {
     [state, setState] = React.useState(InitialState),
 
     barData = React.useRef(EmptyArray),
+    prevData = React.useRef([]),
+
     exitingData = React.useRef(EmptyArray);
 
   const exitData = React.useCallback(() => {
@@ -142,8 +145,15 @@ export const BarGraph = props => {
     setState(prev => ({ ...prev }));
   }, []);
 
+  const shouldComponentUpdate = React.useMemo(() => {
+    return !deepequal(data, prevData.current);
+  }, [data, prevData.current]);
+
   React.useEffect(() => {
     if (!(width && height)) return;
+    if (!shouldComponentUpdate) return;
+
+console.log("BAR GRAPH: GENERATING DATA", data);
 
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
@@ -212,6 +222,7 @@ export const BarGraph = props => {
       return [u, e];
     }, [{}, {}]);
 
+    prevData.current = data;
     barData.current = data.map((d, i) => {
 
       delete exiting[d[indexBy]];
@@ -305,7 +316,7 @@ export const BarGraph = props => {
     });
   }, [data, keys, width, height, groupMode,
       Margin, colors, indexBy, exitData,
-      padding, paddingInner, paddingOuter]
+      padding, paddingInner, paddingOuter, shouldComponentUpdate]
   );
 
   const {

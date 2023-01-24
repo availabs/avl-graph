@@ -5,6 +5,7 @@ import { select as d3select } from "d3-selection"
 //import { range as d3range } from "d3-array"
 import { format as d3format } from "d3-format"
 
+import deepequal from "deepequal"
 import get from "lodash.get"
 
 import { useTheme, useSetSize } from "@availabs/avl-components"
@@ -173,6 +174,8 @@ export const GridGraph = props => {
     [state, setState] = React.useState(InitialState),
 
     gridData = React.useRef([]),
+    prevData = React.useRef([]),
+
     pointData = React.useRef([]),
     spanLines = React.useRef([]),
     boundRects = React.useRef([]);
@@ -202,8 +205,15 @@ export const GridGraph = props => {
     }, {});
   }, [bounds]);
 
+  const shouldComponentUpdate = React.useMemo(() => {
+    return !deepequal(data, prevData.current);
+  }, [data, prevData.current]);
+
   React.useEffect(() => {
     if (!(width && height)) return;
+    if (!shouldComponentUpdate) return;
+
+console.log("GRID GRAPH: GENERATING DATA", data);
 
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
@@ -270,6 +280,7 @@ export const GridGraph = props => {
 
     const boundsData = {};
 
+    prevData.current = data;
     gridData.current = data.map((d, i) => {
 
       let left = 0;
@@ -400,7 +411,7 @@ export const GridGraph = props => {
     });
   }, [data, keys, width, height, Margin, gridData,
       colors, indexBy, boundsMap, exitData, pointsMap,
-      keyWidths, nullColor
+      keyWidths, nullColor, shouldComponentUpdate
   ]);
 
   const {
