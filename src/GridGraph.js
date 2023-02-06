@@ -174,7 +174,6 @@ export const GridGraph = props => {
     [state, setState] = React.useState(InitialState),
 
     gridData = React.useRef([]),
-    prevData = React.useRef([]),
 
     pointData = React.useRef([]),
     spanLines = React.useRef([]),
@@ -205,15 +204,17 @@ export const GridGraph = props => {
     }, {});
   }, [bounds]);
 
-  const shouldComponentUpdate = React.useMemo(() => {
-    return !deepequal(data, prevData.current);
-  }, [data, prevData.current]);
+  const prevData = React.useRef([]);
+  const Data = React.useMemo(() => {
+    if (deepequal(prevData.current, data)) {
+      return prevData.current;
+    }
+    prevData.current = data;
+    return data;
+  }, [data]);
 
   React.useEffect(() => {
     if (!(width && height)) return;
-    if (!shouldComponentUpdate) return;
-
-console.log("GRID GRAPH: GENERATING DATA", data);
 
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
@@ -226,7 +227,7 @@ console.log("GRID GRAPH: GENERATING DATA", data);
       return a + get(keyWidths, c, 1);
     }, 0);
 
-    const [yDomain, dataHeight] = data.reduce((a, c) => {
+    const [yDomain, dataHeight] = Data.reduce((a, c) => {
       let [yd, dh, dw] = a;
       yd.push(c[indexBy]);
       const h = +get(c, "height", 1);
@@ -234,7 +235,7 @@ console.log("GRID GRAPH: GENERATING DATA", data);
       return [yd, dh + h, dw + w];
     }, [[], 0]);
 
-    const indexes = data.map(d => d[indexBy]);
+    const indexes = Data.map(d => d[indexBy]);
 
     const wScale = scaleLinear()
       .domain([0, dataWidth])
@@ -280,8 +281,7 @@ console.log("GRID GRAPH: GENERATING DATA", data);
 
     const boundsData = {};
 
-    prevData.current = data;
-    gridData.current = data.map((d, i) => {
+    gridData.current = Data.map((d, i) => {
 
       let left = 0;
 
@@ -409,10 +409,10 @@ console.log("GRID GRAPH: GENERATING DATA", data);
       xDomain, yDomain, xScale, yScale,
       adjustedWidth, adjustedHeight, yTickValues
     });
-  }, [data, keys, width, height, Margin, gridData,
+  }, [Data, keys, width, height, Margin, gridData,
       colors, indexBy, boundsMap, exitData, pointsMap,
-      keyWidths, nullColor, shouldComponentUpdate
-  ]);
+      keyWidths, nullColor]
+  );
 
   const {
     xDomain, xScale, yDomain, yScale, yTickValues,

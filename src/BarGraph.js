@@ -134,7 +134,6 @@ export const BarGraph = props => {
     [state, setState] = React.useState(InitialState),
 
     barData = React.useRef(EmptyArray),
-    prevData = React.useRef([]),
 
     exitingData = React.useRef(EmptyArray);
 
@@ -145,25 +144,30 @@ export const BarGraph = props => {
     setState(prev => ({ ...prev }));
   }, []);
 
-  const shouldComponentUpdate = React.useMemo(() => {
-    return !deepequal(data, prevData.current);
-  }, [data, prevData.current]);
+  const prevData = React.useRef([]);
+  const Data = React.useMemo(() => {
+    if (deepequal(prevData.current, data)) {
+      return prevData.current;
+    }
+console.log("BAR GRAPH: UPDATED DATA")
+    prevData.current = data;
+    return data;
+  }, [data]);
 
   React.useEffect(() => {
     if (!(width && height)) return;
-    if (!shouldComponentUpdate) return;
 
-console.log("BAR GRAPH: GENERATING DATA", data);
+console.log("BAR GRAPH: CALC DATA")
 
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    const xDomain = data.map(d => d[indexBy]);
+    const xDomain = Data.map(d => d[indexBy]);
 
     let yDomain = [];
     if (xDomain.length) {
       if (groupMode === "stacked") {
-        yDomain = data.reduce((a, c) => {
+        yDomain = Data.reduce((a, c) => {
           const y = keys.reduce((a, k) => a + get(c, k, 0), 0);
           if (!strictNaN(y)) {
             return [0, Math.max(y, get(a, 1, 0))];
@@ -172,7 +176,7 @@ console.log("BAR GRAPH: GENERATING DATA", data);
         }, []);
       }
       else if (groupMode === "grouped") {
-        yDomain = data.reduce((a, c) => {
+        yDomain = Data.reduce((a, c) => {
           const y = keys.reduce((a, k) => Math.max(a, get(c, k, 0)), 0);
           if (!strictNaN(y)) {
             return [0, Math.max(y, get(a, 1, 0))];
@@ -182,7 +186,7 @@ console.log("BAR GRAPH: GENERATING DATA", data);
       }
     }
 
-    // const [xDomain, yDomain] = data.reduce((a, c) => {
+    // const [xDomain, yDomain] = Data.reduce((a, c) => {
     //   let [xd, yd] = a;
     //   xd.push(c[indexBy]);
     //   const y = keys.reduce((a, k) => a + c[k], 0);
@@ -222,8 +226,7 @@ console.log("BAR GRAPH: GENERATING DATA", data);
       return [u, e];
     }, [{}, {}]);
 
-    prevData.current = data;
-    barData.current = data.map((d, i) => {
+    barData.current = Data.map((d, i) => {
 
       delete exiting[d[indexBy]];
 
@@ -314,9 +317,9 @@ console.log("BAR GRAPH: GENERATING DATA", data);
       xDomain, yDomain, xScale, yScale,
       adjustedWidth, adjustedHeight
     });
-  }, [data, keys, width, height, groupMode,
+  }, [Data, keys, width, height, groupMode,
       Margin, colors, indexBy, exitData,
-      padding, paddingInner, paddingOuter, shouldComponentUpdate]
+      padding, paddingInner, paddingOuter]
   );
 
   const {

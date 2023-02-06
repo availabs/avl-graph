@@ -6,6 +6,7 @@ import { line as d3line, curveCatmullRom } from "d3-shape"
 import { range as d3range } from "d3-array"
 import { format as d3format } from "d3-format"
 
+import deepequal from "deepequal"
 import get from "lodash.get"
 
 import { useTheme, useSetSize } from "@availabs/avl-components"
@@ -218,13 +219,31 @@ export const LineGraph = props => {
     setState(prev => ({ ...prev }));
   }, []);
 
+  const prevData = React.useRef([]);
+  const Data = React.useMemo(() => {
+    if (deepequal(prevData.current, data)) {
+      return prevData.current;
+    }
+    prevData.current = data;
+    return data;
+  }, [data]);
+
+  const prevSecData = React.useRef([]);
+  const Secondary = React.useMemo(() => {
+    if (deepequal(prevSecData.current, secondary)) {
+      return prevSecData.current;
+    }
+    prevSecData.current = secondary;
+    return secondary;
+  }, [secondary]);
+
   React.useEffect(() => {
     if (!(width && height)) return;
 
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    const xDomain = data.length ? data[0].data.map(d => d.x) : [];
+    const xDomain = Data.length ? Data[0].data.map(d => d.x) : [];
 
     const aLeft = {
       ...DefaultAxis,
@@ -233,7 +252,7 @@ export const LineGraph = props => {
 
     let yDomain = [];
     if (xDomain.length) {
-      yDomain = data.reduce((a, c) => {
+      yDomain = Data.reduce((a, c) => {
         const y = c.data.reduce((a, c) => Math.max(a, +c.y), 0);
         if (!isNaN(y)) {
           return [aLeft.min, Math.max(y, get(a, 1, 0))];
@@ -244,7 +263,7 @@ export const LineGraph = props => {
 
     let secDomain = [];
     if (xDomain.length) {
-      secDomain = secondary.reduce((a, c) => {
+      secDomain = Secondary.reduce((a, c) => {
         const y = c.data.reduce((a, c) => Math.max(a, +c.y), 0);
         if (!isNaN(y)) {
           return [0, Math.max(y, get(a, 1, 0))];
@@ -303,14 +322,12 @@ export const LineGraph = props => {
       return [u, e];
     }, [{}, {}]);
 
-// console.log("X DOMAIN:", xDomain);
-
     const sliceData = xDomain.reduce((a, c) => {
       a[c] = [];
       return a;
     }, {});
 
-    lineData.current = data.map((d, i) => {
+    lineData.current = Data.map((d, i) => {
 
       const { data, ...rest } = d;
       delete exiting[d[indexBy]];
@@ -372,7 +389,7 @@ export const LineGraph = props => {
       return a;
     }, {});
 
-    secondaryData.current = secondary.map((d, i) => {
+    secondaryData.current = Secondary.map((d, i) => {
 
       const { data, ...rest } = d;
       delete secExiting[d[indexBy]];
@@ -436,7 +453,9 @@ export const LineGraph = props => {
       xDomain, yDomain, xScale, yScale, barData, indexBy, secScale, secDomain,
       adjustedWidth, adjustedHeight, sliceData, secSliceData, lineTotals
     });
-  }, [data, width, height, Margin, lineData, colors, padding, exitData, indexBy, secondary, axisLeft]);
+  }, [Data, width, height, Margin, lineData, colors,
+      padding, exitData, indexBy, Secondary, axisLeft
+  ]);
 
   const {
     onMouseMove,
