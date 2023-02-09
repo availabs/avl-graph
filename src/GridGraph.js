@@ -22,7 +22,8 @@ import {
   Identity,
   EmptyArray,
   EmptyObject,
-  DefaultMargin
+  DefaultMargin,
+  useShouldComponentUpdate
 } from "./utils"
 
 import "./avl-graph.css"
@@ -213,8 +214,11 @@ export const GridGraph = props => {
     return data;
   }, [data]);
 
+  const ShouldComponentUpdate = useShouldComponentUpdate(props);
+
   React.useEffect(() => {
     if (!(width && height)) return;
+    if (!ShouldComponentUpdate) return;
 
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
@@ -411,7 +415,7 @@ export const GridGraph = props => {
     });
   }, [Data, keys, width, height, Margin, gridData,
       colors, indexBy, boundsMap, exitData, pointsMap,
-      keyWidths, nullColor]
+      keyWidths, nullColor, ShouldComponentUpdate]
   );
 
   const {

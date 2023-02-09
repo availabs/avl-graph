@@ -25,7 +25,8 @@ import {
   EmptyArray,
   EmptyObject,
   DefaultMargin,
-  DefaultAxis
+  DefaultAxis,
+  useShouldComponentUpdate
 } from "./utils"
 
 const DefaultHoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals, showTotals = true }) => {
@@ -156,9 +157,9 @@ const InitialState = {
   xDomain: [],
   yDomain: [],
   secDomain: [],
-  xScale: null,
-  yScale: null,
-  secScale: null,
+  XScale: null,
+  YScale: null,
+  SecScale: null,
   adjustedWidth: 0,
   adjustedHeight: 0,
   sliceData: {},
@@ -172,13 +173,17 @@ export const LineGraph = props => {
     data = EmptyArray,
     secondary = EmptyArray,
     margin = EmptyObject,
+    xScale = null,
     axisBottom = null,
+    yScale = null,
     axisLeft = null,
+    secScale = null,
     axisRight = null,
     hoverComp = EmptyObject,
     indexBy = "id",
     className = "",
     padding = 0.5,
+    shouldComponentUpdate = null,
     colors
   } = props;
 
@@ -219,31 +224,17 @@ export const LineGraph = props => {
     setState(prev => ({ ...prev }));
   }, []);
 
-  const prevData = React.useRef([]);
-  const Data = React.useMemo(() => {
-    if (deepequal(prevData.current, data)) {
-      return prevData.current;
-    }
-    prevData.current = data;
-    return data;
-  }, [data]);
-
-  const prevSecData = React.useRef([]);
-  const Secondary = React.useMemo(() => {
-    if (deepequal(prevSecData.current, secondary)) {
-      return prevSecData.current;
-    }
-    prevSecData.current = secondary;
-    return secondary;
-  }, [secondary]);
+  const ShouldComponentUpdate = useShouldComponentUpdate(props);
 
   React.useEffect(() => {
     if (!(width && height)) return;
 
+    if (!ShouldComponentUpdate) return;
+
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    const xDomain = Data.length ? Data[0].data.map(d => d.x) : [];
+    let xDomain = data.length ? data[0].data.map(d => d.x) : [];
 
     const aLeft = {
       ...DefaultAxis,
@@ -252,7 +243,7 @@ export const LineGraph = props => {
 
     let yDomain = [];
     if (xDomain.length) {
-      yDomain = Data.reduce((a, c) => {
+      yDomain = data.reduce((a, c) => {
         const y = c.data.reduce((a, c) => Math.max(a, +c.y), 0);
         if (!isNaN(y)) {
           return [aLeft.min, Math.max(y, get(a, 1, 0))];
@@ -263,7 +254,7 @@ export const LineGraph = props => {
 
     let secDomain = [];
     if (xDomain.length) {
-      secDomain = Secondary.reduce((a, c) => {
+      secDomain = secondary.reduce((a, c) => {
         const y = c.data.reduce((a, c) => Math.max(a, +c.y), 0);
         if (!isNaN(y)) {
           return [0, Math.max(y, get(a, 1, 0))];
@@ -272,40 +263,52 @@ export const LineGraph = props => {
       }, []);
     }
 
-    const xScale = scalePoint()
+    const XScale = scalePoint()
       .padding(padding)
       .domain(xDomain)
       .range([0, adjustedWidth]);
+    if (xScale) {
+      xDomain = get(xScale, "domain", xDomain);
+      XScale.domain(xDomain);
+    }
 
-    const yScale = scaleLinear()
+    const YScale = scaleLinear()
       .domain(yDomain)
       .range([adjustedHeight, 0]);
+    if (yScale) {
+      yDomain = get(yScale, "domain", yDomain);
+      YScale.domain(yDomain);
+    }
 
-    const secScale = scaleLinear()
+    const SecScale = scaleLinear()
       .domain(secDomain)
       .range([adjustedHeight, 0]);
+    if (secScale) {
+      secDomain = get(secScale, "domain", secDomain);
+      SecScale.domain(secDomain);
+    }
 
 		const lineGenerator = d3line()
       .curve(curveCatmullRom)
-			.x(d => xScale(d.x))
-			.y(d => yScale(d.y));
+			.x(d => XScale(d.x))
+			.y(d => YScale(d.y));
 
     const secGenerator = d3line()
       .curve(curveCatmullRom)
-			.x(d => xScale(d.x))
-			.y(d => secScale(d.y));
+			.x(d => XScale(d.x))
+			.y(d => SecScale(d.y));
 
-		const yEnter = yScale(yDomain[0]),
+		const yEnter = YScale(yDomain[0]),
       baseLineGenerator = d3line()
         .curve(curveCatmullRom)
-  			.x(d => xScale(d))
+  			.x(d => XScale(d))
   			.y(d => yEnter),
       baseLine = baseLineGenerator(xDomain);
 
-		const secEnter = secScale(secDomain[0]),
+		const secEnter = SecScale(secDomain[0]),
       secBaseLineGenerator = d3line()
         .curve(curveCatmullRom)
-  			.x(d => xScale(d))
+  			.x(d => XScale(d))
   			.y(d => secEnter),
       secBaseLine = secBaseLineGenerator(xDomain);
 
@@ -327,7 +330,7 @@ export const LineGraph = props => {
       return a;
     }, {});
 
-    lineData.current = Data.map((d, i) => {
+    lineData.current = data.map((d, i) => {
 
       const { data, ...rest } = d;
       delete exiting[d[indexBy]];
@@ -338,11 +341,13 @@ export const LineGraph = props => {
 
       data.forEach(({ x, y }) => {
         lineTotals[d[indexBy]] += y;
-        sliceData[x].push({
-          ...rest,
-          color,
-          y
-        });
+        if (x in sliceData) {
+          sliceData[x].push({
+            ...rest,
+            color,
+            y
+          });
+        }
       })
 
       return {
@@ -389,7 +394,7 @@ export const LineGraph = props => {
       return a;
     }, {});
 
-    secondaryData.current = Secondary.map((d, i) => {
+    secondaryData.current = secondary.map((d, i) => {
 
       const { data, ...rest } = d;
       delete secExiting[d[indexBy]];
@@ -436,12 +441,12 @@ export const LineGraph = props => {
       }
     }
 
-    const step = xScale.step(),
-      offset = xScale.padding() * step - step * 0.5;
+    const step = XScale.step(),
+      offset = XScale.padding() * step - step * 0.5;
 
     const barData = xDomain.map((x, i) => ({
       left: offset + i * step,
-      center: xScale(x),
+      center: XScale(x),
       data: sliceData[x],
       secondary: secSliceData[x],
       height: adjustedHeight,
@@ -450,11 +455,12 @@ export const LineGraph = props => {
     }));
 
     setState({
-      xDomain, yDomain, xScale, yScale, barData, indexBy, secScale, secDomain,
+      xDomain, yDomain, XScale, YScale, barData, indexBy, SecScale, secDomain,
       adjustedWidth, adjustedHeight, sliceData, secSliceData, lineTotals
     });
-  }, [Data, width, height, Margin, lineData, colors,
-      padding, exitData, indexBy, Secondary, axisLeft
+  }, [data, width, height, Margin, lineData, colors,
+      padding, exitData, indexBy, secondary, axisLeft,
+      ShouldComponentUpdate
   ]);
 
   const {
@@ -464,7 +470,7 @@ export const LineGraph = props => {
   } = useHoverComp(ref);
 
   const {
-    xDomain, xScale, yDomain, yScale, secDomain, secScale, lineTotals, barData,
+    xDomain, XScale, yDomain, YScale, secDomain, SecScale, lineTotals, barData,
     ...stateRest
   } = state;
 
@@ -483,14 +489,14 @@ export const LineGraph = props => {
             { !axisBottom ? null :
               <AxisBottom { ...stateRest }
                 margin={ Margin }
-                scale={ xScale }
+                scale={ XScale }
                 domain={ xDomain }
                 { ...axisBottom }/>
             }
             { !axisLeft ? null :
               <AxisLeft { ...stateRest }
                 margin={ Margin }
-                scale={ yScale }
+                scale={ YScale }
                 domain={ yDomain }
                 { ...axisLeft  }/>
             }
@@ -532,7 +538,7 @@ export const LineGraph = props => {
               <AxisRight { ...stateRest }
                 secondary={ true }
                 margin={ Margin }
-                scale={ secScale }
+                scale={ SecScale }
                 domain={ secDomain }
                 { ...axisRight }/>
             }

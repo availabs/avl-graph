@@ -24,7 +24,8 @@ import {
   EmptyArray,
   EmptyObject,
   DefaultMargin,
-  strictNaN
+  strictNaN,
+  useShouldComponentUpdate
 } from "./utils"
 
 import "./avl-graph.css"
@@ -86,8 +87,8 @@ const DefaultHoverCompData = {
 const InitialState = {
   xDomain: [],
   yDomain: [],
-  xScale: null,
-  yScale: null,
+  XScale: null,
+  YScale: null,
   adjustedWidth: 0,
   adjustedHeight: 0
 }
@@ -100,7 +101,9 @@ export const BarGraph = props => {
     margin = EmptyObject,
     hoverComp = EmptyObject,
     axisBottom = null,
+    xScale = null,
     axisLeft = null,
+    yScale = null,
     axisRight = null,
     indexBy = "index",
     className = "",
@@ -144,30 +147,22 @@ export const BarGraph = props => {
     setState(prev => ({ ...prev }));
   }, []);
 
-  const prevData = React.useRef([]);
-  const Data = React.useMemo(() => {
-    if (deepequal(prevData.current, data)) {
-      return prevData.current;
-    }
-console.log("BAR GRAPH: UPDATED DATA")
-    prevData.current = data;
-    return data;
-  }, [data]);
+  const ShouldComponentUpdate = useShouldComponentUpdate(props);
 
   React.useEffect(() => {
     if (!(width && height)) return;
 
-console.log("BAR GRAPH: CALC DATA")
+    if (!ShouldComponentUpdate) return;
 
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    const xDomain = Data.map(d => d[indexBy]);
+    let xDomain = data.map(d => d[indexBy]);
 
     let yDomain = [];
     if (xDomain.length) {
       if (groupMode === "stacked") {
-        yDomain = Data.reduce((a, c) => {
+        yDomain = data.reduce((a, c) => {
           const y = keys.reduce((a, k) => a + get(c, k, 0), 0);
           if (!strictNaN(y)) {
             return [0, Math.max(y, get(a, 1, 0))];
@@ -176,7 +171,7 @@ console.log("BAR GRAPH: CALC DATA")
         }, []);
       }
       else if (groupMode === "grouped") {
-        yDomain = Data.reduce((a, c) => {
+        yDomain = data.reduce((a, c) => {
           const y = keys.reduce((a, k) => Math.max(a, get(c, k, 0)), 0);
           if (!strictNaN(y)) {
             return [0, Math.max(y, get(a, 1, 0))];
@@ -186,7 +181,7 @@ console.log("BAR GRAPH: CALC DATA")
       }
     }
 
-    // const [xDomain, yDomain] = Data.reduce((a, c) => {
+    // const [xDomain, yDomain] = data.reduce((a, c) => {
     //   let [xd, yd] = a;
     //   xd.push(c[indexBy]);
     //   const y = keys.reduce((a, k) => a + c[k], 0);
@@ -200,21 +195,29 @@ console.log("BAR GRAPH: CALC DATA")
     //   return [xd, yd];
     // }, [[], []]);
 
-    const xScale = scaleBand()
+    const XScale = scaleBand()
       .paddingInner(padding || paddingInner)
       .paddingOuter(padding || paddingOuter)
       .domain(xDomain)
       .range([0, adjustedWidth]);
+    if (xScale) {
+      xDomain = get(xScale, "domain", xDomain);
+      XScale.domain(xDomain);
+    }
 
-    const bandwidth = xScale.bandwidth(),
-      step = xScale.step(),
-      outer = xScale.paddingOuter() * step;
+    const bandwidth = XScale.bandwidth(),
+      step = XScale.step(),
+      outer = XScale.paddingOuter() * step;
 
     const zeroYdomain = (yDomain[0] === 0) && (yDomain[1] === 0);
 
-    const yScale = scaleLinear()
+    const YScale = scaleLinear()
       .domain(yDomain)
       .range([adjustedHeight, zeroYdomain ? adjustedHeight : 0]);
+    if (yScale) {
+      yDomain = get(yScale, "domain", yDomain);
+      YScale.domain(yDomain);
+    }
 
     const colorFunc = getColorFunc(colors);
 
@@ -226,7 +229,7 @@ console.log("BAR GRAPH: CALC DATA")
       return [u, e];
     }, [{}, {}]);
 
-    barData.current = Data.map((d, i) => {
+    barData.current = data.map((d, i) => {
 
       delete exiting[d[indexBy]];
 
@@ -237,7 +240,7 @@ console.log("BAR GRAPH: CALC DATA")
 
         const stacks = keys.map((key, ii) => {
           const value = get(d, key, 0),
-            height = Math.max(0, adjustedHeight - yScale(value)),
+            height = Math.max(0, adjustedHeight - YScale(value)),
             color = colorFunc(value, ii, d, key);
 
           current -= height;
@@ -272,7 +275,7 @@ console.log("BAR GRAPH: CALC DATA")
         const stacks = keys.slice()
           .map((key, ii) => {
             const value = get(d, key, 0),
-              y = Math.min(adjustedHeight, yScale(value)),
+              y = Math.min(adjustedHeight, YScale(value)),
               color = colorFunc(d, ii, key);
 
             barValues[key] = { value, color };
@@ -314,12 +317,14 @@ console.log("BAR GRAPH: CALC DATA")
     barData.current = barData.current.concat(exitingAsArray);
 
     setState({
-      xDomain, yDomain, xScale, yScale,
+      xDomain, yDomain, XScale, YScale,
       adjustedWidth, adjustedHeight
     });
-  }, [Data, keys, width, height, groupMode,
+  }, [data, keys, width, height, groupMode,
       Margin, colors, indexBy, exitData,
-      padding, paddingInner, paddingOuter]
+      padding, paddingInner, paddingOuter,
+      ShouldComponentUpdate
+    ]
   );
 
   const {
@@ -329,7 +334,7 @@ console.log("BAR GRAPH: CALC DATA")
   } = useHoverComp(ref);
 
   const {
-    xDomain, xScale, yDomain, yScale,
+    xDomain, XScale, yDomain, YScale,
     ...restOfState
   } = state;
 
@@ -348,21 +353,21 @@ console.log("BAR GRAPH: CALC DATA")
             { !axisBottom ? null :
               <AxisBottom { ...restOfState }
                 margin={ Margin }
-                scale={ xScale }
+                scale={ XScale }
                 domain={ xDomain }
                 { ...axisBottom }/>
             }
             { !axisLeft ? null :
               <AxisLeft { ...restOfState }
                 margin={ Margin }
-                scale={ yScale }
+                scale={ YScale }
                 domain={ yDomain }
                 { ...axisLeft }/>
             }
             { !axisRight ? null :
               <AxisRight { ...restOfState }
                 margin={ Margin }
-                scale={ yScale }
+                scale={ YScale }
                 domain={ yDomain }
                 { ...axisRight }/>
             }
