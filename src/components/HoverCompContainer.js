@@ -78,8 +78,10 @@ const InitialState = {
 
 export const useHoverComp = ref => {
 
-  const [hoverData, dispatch] = React.useReducer(Reducer, InitialState),
-    updateHoverData = React.useMemo(() => throttle(dispatch, 25), [dispatch]);
+  const [hoverData, dispatch] = React.useReducer(Reducer, InitialState);
+  const updateHoverData = React.useMemo(() => {
+    return throttle(dispatch, 25);
+  }, [dispatch]);
 
   const onMouseOver = React.useCallback((e, data, { pos = null, target = "graph" } = {}) => {
     const rect = ref.current.getBoundingClientRect();

@@ -57,7 +57,7 @@ const DefaultHoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals, showTo
                   ${ isMax ? "border-current" : "border-transparent" }
                 ` }
               >
-                <div>
+                <div className="flex-1">
                   <div className={ `
                     flex items-center
                     ${ isMax ? "border-current" : "border-transparent" }
@@ -71,7 +71,7 @@ const DefaultHoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals, showTo
                         borderStyle: "solid",
                         background: `${ color }${ isMax ? "ff" : "33" }`
                       } }/>
-                    <div className="mr-4">
+                    <div className="mr-4 flex-1">
                       { idFormat(id, rest) }:
                     </div>
                   </div>
@@ -224,12 +224,15 @@ export const LineGraph = props => {
     setState(prev => ({ ...prev }));
   }, []);
 
-  const ShouldComponentUpdate = useShouldComponentUpdate(props);
+  const ShouldComponentUpdate = useShouldComponentUpdate(props, width, height);
+console.log("LINE GRAPH ShouldComponentUpdate", ShouldComponentUpdate, data, width, height)
 
   React.useEffect(() => {
     if (!(width && height)) return;
 
     if (!ShouldComponentUpdate) return;
+
+console.log("LINE GRAPH calculating")
 
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));

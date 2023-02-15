@@ -47,20 +47,23 @@ export const DefaultAxis = {
   min: 0
 }
 
-export const useShouldComponentUpdate = props => {
+export const useShouldComponentUpdate = (props, width, height) => {
 
   const prevProps = React.useRef({});
+  const prevSize = React.useRef([width, height]);
 
   const ShouldComponentUpdate = React.useMemo(() => {
     const keys = get(props, "shouldComponentUpdate", []);
-    return keys.reduce((a, c) => {
-      return a || !deepequal(get(prevProps, ["current", c]), get(props, c));
-    }, !Boolean(keys.length));
-  }, [props]);
+    return !deepequal([width, height], prevSize.current) ||
+      keys.reduce((a, c) => {
+        return a || !deepequal(get(prevProps, ["current", c]), get(props, c));
+      }, !Boolean(keys.length));
+  }, [props, width, height]);
 
   React.useEffect(() => {
     prevProps.current = props;
-  }, [props]);
+    prevSize.current = [width, height];
+  }, [props, width, height]);
 
   return ShouldComponentUpdate;
 }

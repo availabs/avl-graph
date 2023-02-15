@@ -214,7 +214,7 @@ export const GridGraph = props => {
     return data;
   }, [data]);
 
-  const ShouldComponentUpdate = useShouldComponentUpdate(props);
+  const ShouldComponentUpdate = useShouldComponentUpdate(props, width, height);
 
   React.useEffect(() => {
     if (!(width && height)) return;

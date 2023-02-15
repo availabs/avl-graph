@@ -30,7 +30,7 @@ import {
 
 import "./avl-graph.css"
 
-const DefaultHoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat }) => {
+const DefaultHoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat, showTotals = true }) => {
   const theme = useTheme();
   return (
     <div className={ `
@@ -81,7 +81,8 @@ const DefaultHoverCompData = {
   indexFormat: Identity,
   keyFormat: Identity,
   valueFormat: Identity,
-  position: "side"
+  position: "side",
+  showTotals: true
 }
 
 const InitialState = {
@@ -147,7 +148,7 @@ export const BarGraph = props => {
     setState(prev => ({ ...prev }));
   }, []);
 
-  const ShouldComponentUpdate = useShouldComponentUpdate(props);
+  const ShouldComponentUpdate = useShouldComponentUpdate(props, width, height);
 
   React.useEffect(() => {
     if (!(width && height)) return;
