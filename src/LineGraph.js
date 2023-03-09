@@ -183,6 +183,7 @@ export const LineGraph = props => {
     indexBy = "id",
     className = "",
     padding = 0.5,
+    strokeWidth = 1,
     shouldComponentUpdate = null,
     colors
   } = props;
@@ -507,12 +508,14 @@ export const LineGraph = props => {
 
           { lineData.current.map(({ id, ...rest }) => (
               <Line key={ id } { ...rest }
-                onMouseMove={ onMouseMove }/>
+                onMouseMove={ onMouseMove }
+                strokeWidth={ strokeWidth }/>
             ))
           }
           { secondaryData.current.map(({ id, ...rest }) => (
               <Line key={ id } { ...rest } secondary={ true }
-                onMouseMove={ onMouseMove }/>
+                onMouseMove={ onMouseMove }
+                strokeWidth={ strokeWidth }/>
             ))
           }
 
@@ -523,7 +526,7 @@ export const LineGraph = props => {
           }
 
           { !hoverData.show ? null :
-            <line stroke="currentColor" strokeWidth="2"
+            <line stroke="currentColor" strokeWidth="1"
               style={ {
                 transform: `translate(${ hoverData.data.center }px)`,
                 transition: "transform 0.15s ease-out"
@@ -562,7 +565,7 @@ export const LineGraph = props => {
 }
 export default LineGraph;
 
-const Line = React.memo(({ line, baseLine, state, color, secondary = false }) => {
+const Line = React.memo(({ line, baseLine, state, color, strokeWidth = 1, secondary = false }) => {
 
   const ref = React.useRef();
 
@@ -573,6 +576,7 @@ const Line = React.memo(({ line, baseLine, state, color, secondary = false }) =>
         .attr("d", baseLine)
         .attr("stroke", color)
         .attr("stroke-dasharray", secondary ? "8 4" : null)
+        .attr("stroke-width", strokeWidth)
         .transition().duration(1000)
         // .attr("opacity", 1)
         .attr("d", line);
@@ -588,6 +592,7 @@ const Line = React.memo(({ line, baseLine, state, color, secondary = false }) =>
         .transition().duration(1000)
         // .attr("opacity", 1)
         .attr("stroke", color)
+        .attr("stroke-width", strokeWidth)
         .attr("d", line);
     }
   }, [ref, state, line, baseLine, color, secondary]);

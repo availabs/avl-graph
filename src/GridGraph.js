@@ -539,7 +539,7 @@ const Point = ({ showHover, onMouseOver, data, cx, cy, ...rest }) => {
   )
 }
 
-const Grid = ({ x, width, height, color,
+const Grid = React.memo(({ x, width, height, color,
                 state, onMouseMove, onClick,
                 Key, index, value, showAnimations,
                 data, indexData, indexes }) => {
@@ -620,7 +620,7 @@ const Grid = ({ x, width, height, color,
       onMouseMove={ _onMouseMove }
       onClick={ _onClick }/>
   )
-}
+})
 
 const Horizontal = React.memo(({ grid, top, state, showAnimations, ...props }) => {
 

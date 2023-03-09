@@ -266,7 +266,7 @@ export const BarGraph = props => {
         return {
           stacks,
           barValues,
-          left: outer + i * step,
+          left: XScale(d[indexBy]),
           data: d,
           state: get(updating, d[indexBy], "entering"),
           id: d[indexBy].toString()

@@ -146,7 +146,7 @@ const renderAxisLeft = (ref,
         .attr("y1", gridEnter)
         .attr("y2", gridEnter)
         .attr("stroke", "currentColor")
-        // .attr("stroke-opacity", 0.5)
+        .attr("stroke-opacity", 0.25)
           .call(enter => enter
             .transition(transition)
               .attr("y1", d => scale(d) + 0.5)
@@ -155,7 +155,7 @@ const renderAxisLeft = (ref,
       update => update
         .call(update => update
           .attr("stroke", "currentColor")
-          // .attr("stroke-opacity", 0.5)
+          .attr("stroke-opacity", 0.25)
           .transition(transition)
             .attr("x2", adjustedWidth)
             .attr("y1", d => scale(d) + 0.5)
