@@ -12,6 +12,7 @@
 .avl-graph path.avl-slice:hover {
   fill-opacity: 1;
 }
+.avl-graph g.avl-grid-horizontal.hover rect.avl-grid,
 .avl-graph g.avl-grid-horizontal:hover rect.avl-grid {
   fill-opacity: 1;
 }

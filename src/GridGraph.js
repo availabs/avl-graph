@@ -28,14 +28,14 @@ import {
 
 import "./avl-graph.css"
 
-const DefaultHoverComp = ({ data, indexFormat, keyFormat, valueFormat }) => {
+const DefaultHoverComp = ({ data, indexFormat, keyFormat, valueFormat, valueLabel }) => {
   const theme = useTheme();
   return (
     <div className={ `
       grid grid-cols-1 gap-1 px-2 pt-1 pb-2 rounded
       ${ theme.accent1 }
     ` }>
-      <div className="font-bold text-lg leading-6 border-b-2 pl-2">
+      <div className="font-bold text-lg leading-6 border-b-2 border-current pl-2">
         { keyFormat(get(data, "key", null)) }
       </div>
       { get(data, "indexes", []).map(i => (
@@ -52,6 +52,7 @@ const DefaultHoverComp = ({ data, indexFormat, keyFormat, valueFormat }) => {
             </div>
             <div className="text-right flex-1">
               { valueFormat(get(data, ["indexData", i, "value"], 0)) }
+              <b className="ml-1">{ valueLabel }</b>
             </div>
           </div>
         ))
@@ -65,6 +66,7 @@ const DefaultHoverCompData = {
   indexFormat: Identity,
   keyFormat: Identity,
   valueFormat: Identity,
+  valueLabel: "",
   position: "side"
 }
 
@@ -139,6 +141,8 @@ export const GridGraph = props => {
     axisLeft = null,
     className = "",
     onClick = null,
+    onHoverEnter = null,
+    onHoverLeave = null,
     bgColor = "#000000",
     nullColor = "#000000",
     hoverPoints = false,
@@ -369,6 +373,7 @@ export const GridGraph = props => {
       }, []);
 
       const horizontal = {
+        className: get(d, "className", null),
         grid,
         top,
         data: d,
@@ -470,10 +475,12 @@ export const GridGraph = props => {
             width={ state.adjustedWidth } height={ state.adjustedHeight }/>
 
           { gridData.current.map(({ id, ...rest }) =>
-              <Horizontal key={ id } { ...rest }
+              <Horizontal key={ id } { ...rest } index={ id }
                 onMouseMove={ onMouseMove }
                 showAnimations={ showAnimations }
-                onClick={ onClick }/>
+                onClick={ onClick }
+                onHoverEnter={ onHoverEnter }
+                onHoverLeave={ onHoverLeave }/>
             )
           }
 
@@ -622,7 +629,8 @@ const Grid = React.memo(({ x, width, height, color,
   )
 })
 
-const Horizontal = React.memo(({ grid, top, state, showAnimations, ...props }) => {
+const Horizontal = React.memo(({ index, grid, top, state, showAnimations,
+                                  onHoverEnter, onHoverLeave, className, ...props }) => {
 
   const ref = React.useRef();
 
@@ -644,8 +652,22 @@ const Horizontal = React.memo(({ grid, top, state, showAnimations, ...props }) =
     }
   }, [state, top,showAnimations]);
 
+  const onEnter = React.useMemo(() => {
+    if (!onHoverEnter) return null;
+    return e => onHoverEnter(e, index);
+  }, [onHoverEnter, index]);
+
+  const onLeave = React.useMemo(() => {
+    if (!onHoverLeave) return null;
+    return e => onHoverLeave(e, index);
+  }, [onHoverLeave, index]);
+
   return (
-    <g ref={ ref } className="avl-grid-horizontal">
+    <g ref={ ref }
+      className={ `avl-grid-horizontal ${ className ? className : "" }` }
+      onMouseEnter={ onEnter }
+      onMouseLeave={ onLeave }
+    >
       { grid.map(({ key, ...rest }) =>
           <Grid key={ key } Key={ key } state={ state }
             { ...props } { ...rest }
