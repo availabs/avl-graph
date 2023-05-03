@@ -4,6 +4,17 @@ import deepequal from "deepequal"
 import get from "lodash.get"
 
 import { getColorRange } from "@availabs/avl-components"
+import {
+  scaleBand,
+  scalePoint,
+  scaleOrdinal,
+  scaleLinear,
+  scalePow,
+  scaleLog,
+  scaleSymlog,
+  scaleQuantize,
+  scaleQuantile
+} from "d3-scale"
 
 const DEFAULT_COLORS = getColorRange(12, "Set3");
 
@@ -28,13 +39,74 @@ export const getColorFunc = colors => {
   }
 }
 
+export const strictNaN = v => (v === null) || isNaN(v);
+
+export const DefaultXScale = {
+  type: "band",
+  domain: []
+}
+export const DefaultYScale = {
+  type: "linear",
+  domain: []
+}
+
+const ScaleMap = {
+  "band": scaleBand,
+  "point": scalePoint,
+  "ordinal": scaleOrdinal,
+  "linear": scaleLinear,
+  "power": scalePow,
+  "log": scaleLog,
+  "symlog": scaleSymlog,
+  "quantize": scaleQuantize,
+  "quantile": scaleQuantile
+}
+
+export const getScale = options => {
+  let {
+    type,
+    domain,
+    range,
+    data,
+    padding,
+    paddingInner,
+    paddingOuter,
+    getter,
+    exponent = 1,
+    base = 10
+  } = options;
+
+  if (!domain.length) {
+    domain = getter(data);
+  }
+
+console.log("GET SCALE:", type)
+
+  const scale = ScaleMap[type]()
+    .domain(domain)
+    .range(range);
+
+  if (type === "band") {
+    scale.paddingInner(padding || paddingInner)
+      .paddingOuter(padding || paddingOuter);
+  }
+  if (type === "point") {
+    scale.paddingOuter(padding || paddingOuter);
+  }
+  if (type === "power") {
+    scale.exponent(exponent);
+  }
+  if (type === "log") {
+    scale.base(base);
+  }
+  return scale
+}
+
 export const Identity = i => i;
 
 export const EmptyArray = [];
 
 export const EmptyObject = {};
-
-export const strictNaN = v => (v === null) || isNaN(v);
 
 export const DefaultMargin = {
   left: 70,

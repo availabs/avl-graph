@@ -3,7 +3,6 @@ import React from "react"
 import { select as d3select } from "d3-selection"
 import { transition as d3transition } from "d3-transition"
 import { axisLeft as d3AxisLeft } from "d3-axis"
-// import { scaleLinear } from "d3-scale"
 
 export const AxisLeft = props => {
   const {
@@ -39,14 +38,6 @@ const renderAxisLeft = (ref,
                         margin, ticks, tickValues, showGridLines) => {
 
   const { left, top } = margin;
-
-  // const Scale = scaleLinear()
-  //   .domain(domain)
-  //   .range(scale.range().slice().reverse());
-  //
-  // const axisLeft = d3AxisLeft(Scale)
-  //   .tickFormat(format)
-  //   .ticks(ticks);
 
   const axisLeft = d3AxisLeft(scale)
     .tickFormat(format);
