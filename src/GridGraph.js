@@ -5,10 +5,10 @@ import { select as d3select } from "d3-selection"
 //import { range as d3range } from "d3-array"
 import { format as d3format } from "d3-format"
 
-import deepequal from "deepequal"
-import get from "lodash.get"
+import isEqual from "lodash/isEqual"
+import get from "lodash/get"
 
-import { useTheme, useSetSize } from "@availabs/avl-components"
+import { theme, useSetSize } from "./utils"
 
 import {
   AxisBottom,
@@ -29,7 +29,6 @@ import {
 import "./avl-graph.css"
 
 const DefaultHoverComp = ({ data, indexFormat, keyFormat, valueFormat, valueLabel }) => {
-  const theme = useTheme();
   return (
     <div className={ `
       grid grid-cols-1 gap-1 px-2 pt-1 pb-2 rounded
@@ -211,7 +210,7 @@ export const GridGraph = props => {
 
   const prevData = React.useRef([]);
   const Data = React.useMemo(() => {
-    if (deepequal(prevData.current, data)) {
+    if (isEqual(prevData.current, data)) {
       return prevData.current;
     }
     prevData.current = data;

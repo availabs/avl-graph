@@ -8,7 +8,8 @@ export const AxisBottom = props => {
   const {
     adjustedWidth, adjustedHeight, type = "band",
     domain, scale, format, tickValues,
-    secondary, label, margin, tickDensity = 2
+    secondary, label, margin, tickDensity = 2,
+    axisColor = "currentColor", axisOpacity = 1,
   } = props;
 
   const ref = React.useRef();
@@ -19,12 +20,14 @@ export const AxisBottom = props => {
         ref: ref.current,
         adjustedWidth, adjustedHeight, type,
         domain, scale, format, tickValues,
-        secondary, label, margin, tickDensity
+        secondary, label, margin, tickDensity,
+        axisColor, axisOpacity
       });
     }
   }, [adjustedWidth, adjustedHeight, type,
       domain, scale, format, tickValues,
-      secondary, label, margin, tickDensity]
+      secondary, label, margin, tickDensity,
+      axisColor, axisOpacity]
   );
 
   return <g ref={ ref }/>;
@@ -36,7 +39,8 @@ const renderAxisBottom = ({ ref,
                     domain, scale, format,
                     secondary, label,
                     tickValues, type,
-                    margin, tickDensity }) => {
+                    margin, tickDensity,
+                    axisColor, axisOpacity}) => {
 
   const { left, top, bottom } = margin;
 
@@ -128,7 +132,10 @@ const renderAxisBottom = ({ ref,
         .attr("class", "axis axis-bottom")
         .classed("secondary", secondary)
         .transition(transition)
-        .call(axisBottom);
+        .call(axisBottom)
+        .select(".domain")
+        .attr("stroke", axisColor)
+        .attr("opacity", axisOpacity);
 
   group.selectAll("text.axis-label")
     .data(domain.length && Boolean(label) ? [label] : [])

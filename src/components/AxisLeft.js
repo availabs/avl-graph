@@ -3,11 +3,10 @@ import React from "react"
 import { select as d3select } from "d3-selection"
 import { transition as d3transition } from "d3-transition"
 import { axisLeft as d3AxisLeft } from "d3-axis"
-// import { scaleLinear } from "d3-scale"
 
 export const AxisLeft = props => {
   const {
-    adjustedWidth, adjustedHeight, showGridLines = true,
+    adjustedWidth, adjustedHeight, showGridLines = true, gridLineOpacity = 0.25, axisColor = "currentColor", axisOpacity = 1,
     domain, scale, format, type = "linear",
     secondary, label, margin, ticks = 10, tickValues
   } = props;
@@ -20,12 +19,14 @@ export const AxisLeft = props => {
         adjustedWidth, adjustedHeight,
         domain, scale, type, format,
         secondary, label, margin,
-        ticks, tickValues, showGridLines
+        ticks, tickValues, showGridLines, gridLineOpacity,
+        axisColor, axisOpacity
       );
     }
   }, [adjustedWidth, adjustedHeight, showGridLines,
       domain, scale, type, format,
-      secondary, label, margin, ticks, tickValues]
+      secondary, label, margin, ticks, tickValues,
+      gridLineOpacity, axisColor, axisOpacity]
   );
 
   return <g ref={ ref }/>;
@@ -36,17 +37,10 @@ const renderAxisLeft = (ref,
                         adjustedHeight,
                         domain, scale, type, format,
                         secondary, label,
-                        margin, ticks, tickValues, showGridLines) => {
+                        margin, ticks, tickValues, showGridLines, gridLineOpacity,
+                        axisColor, axisOpacity) => {
 
   const { left, top } = margin;
-
-  // const Scale = scaleLinear()
-  //   .domain(domain)
-  //   .range(scale.range().slice().reverse());
-  //
-  // const axisLeft = d3AxisLeft(Scale)
-  //   .tickFormat(format)
-  //   .ticks(ticks);
 
   const axisLeft = d3AxisLeft(scale)
     .tickFormat(format);
@@ -111,7 +105,14 @@ const renderAxisLeft = (ref,
       .attr("class", "axis axis-left")
         .classed("secondary", secondary)
         .transition(transition)
-        .call(axisLeft);
+        .call(axisLeft)
+        .call(g => g.selectAll(".tick line")
+                    .attr("stroke", "currentColor")
+                    .attr("stroke-opacity", gridLineOpacity)
+        )
+        .select(".domain")
+          .attr("stroke", axisColor)
+          .attr("opacity", axisOpacity);
 
   group.selectAll("text.axis-label")
     .data(domain.length && Boolean(label) ? [label] : [])
@@ -146,7 +147,7 @@ const renderAxisLeft = (ref,
         .attr("y1", gridEnter)
         .attr("y2", gridEnter)
         .attr("stroke", "currentColor")
-        .attr("stroke-opacity", 0.25)
+        .attr("stroke-opacity", gridLineOpacity)
           .call(enter => enter
             .transition(transition)
               .attr("y1", d => scale(d) + 0.5)
@@ -155,7 +156,7 @@ const renderAxisLeft = (ref,
       update => update
         .call(update => update
           .attr("stroke", "currentColor")
-          .attr("stroke-opacity", 0.25)
+          .attr("stroke-opacity", gridLineOpacity)
           .transition(transition)
             .attr("x2", adjustedWidth)
             .attr("y1", d => scale(d) + 0.5)

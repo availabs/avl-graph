@@ -6,10 +6,10 @@ import { line as d3line, curveCatmullRom } from "d3-shape"
 import { range as d3range } from "d3-array"
 import { format as d3format } from "d3-format"
 
-import deepequal from "deepequal"
-import get from "lodash.get"
 
-import { useTheme, useSetSize } from "@availabs/avl-components"
+import get from "lodash/get"
+
+import { theme, useSetSize } from "./utils"
 
 import {
   AxisBottom,
@@ -30,7 +30,6 @@ import {
 } from "./utils"
 
 const DefaultHoverComp = ({ data, idFormat, xFormat, yFormat, lineTotals, showTotals = true }) => {
-  const theme = useTheme();
   return (
     <div
       className={ `

@@ -7,7 +7,7 @@ import { axisRight as d3AxisRight } from "d3-axis"
 
 export const AxisRight = props => {
   const {
-    adjustedWidth, adjustedHeight, showGridLines = true,
+    adjustedWidth, adjustedHeight, showGridLines = true, gridLineOpacity = 0.25, axisColor = "currentColor", axisOpacity = 1,
     domain, scale, format, type = "linear",
     secondary, label, margin, ticks = 10
   } = props;
@@ -19,12 +19,14 @@ export const AxisRight = props => {
       renderAxisRight(ref.current,
         adjustedWidth, adjustedHeight,
         domain, scale, type, format,
-        secondary, label, margin, ticks, showGridLines
+        secondary, label, margin, ticks, showGridLines, gridLineOpacity,
+        axisColor, axisOpacity
       );
     }
   }, [adjustedWidth, adjustedHeight, showGridLines,
       domain, scale, type, format,
-      secondary, label, margin, ticks]
+      secondary, label, margin, ticks,
+      gridLineOpacity, axisColor, axisOpacity]
   );
 
   return <g ref={ ref }/>;
@@ -35,7 +37,8 @@ const renderAxisRight = (ref,
                     adjustedHeight,
                     domain, scale, type, format,
                     secondary, label,
-                    margin, ticks, showGridLines) => {
+                    margin, ticks, showGridLines, gridLineOpacity,
+                    axisColor, axisOpacity) => {
 
   const { left, right, top } = margin;
 
@@ -104,7 +107,14 @@ const renderAxisRight = (ref,
     .join("g")
       .attr("class", "axis axis-right")
         .transition(transition)
-        .call(axisRight);
+        .call(axisRight)
+        .call(g => g.selectAll(".tick line")
+          .attr("stroke", "currentColor")
+          .attr("stroke-opacity", gridLineOpacity)
+        )
+        .select(".domain")
+        .attr("stroke", axisColor)
+        .attr("opacity", axisOpacity);
 
   group.selectAll("g.axis.axis-right .domain")
     .attr("stroke-dasharray", secondary ? "8 4" : null);
@@ -143,7 +153,7 @@ const renderAxisRight = (ref,
         .attr("y1", gridEnter)
         .attr("y2", gridEnter)
         .attr("stroke", "currentColor")
-        // .attr("stroke-opacity", 0.5)
+        .attr("stroke-opacity", gridLineOpacity)
           .call(enter => enter
             .transition(transition)
               .attr("y1", d => scale(d) + 0.5)
@@ -152,7 +162,7 @@ const renderAxisRight = (ref,
       update => update
         .call(update => update
           .attr("stroke", "currentColor")
-          // .attr("stroke-opacity", 0.5)
+          .attr("stroke-opacity", gridLineOpacity)
           .transition(transition)
             .attr("x2", -adjustedWidth)
             .attr("y1", d => scale(d) + 0.5)

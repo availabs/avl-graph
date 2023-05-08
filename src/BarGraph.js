@@ -5,10 +5,10 @@ import { select as d3select } from "d3-selection"
 import { range as d3range } from "d3-array"
 import { format as d3format } from "d3-format"
 
-import deepequal from "deepequal"
-import get from "lodash.get"
+import isEqual from "lodash/isEqual"
+import get from "lodash/get"
 
-import { useTheme, useSetSize } from "@availabs/avl-components"
+import { theme, useSetSize } from "./utils"
 
 import {
   AxisBottom,
@@ -24,14 +24,16 @@ import {
   EmptyArray,
   EmptyObject,
   DefaultMargin,
+  DefaultXScale,
+  DefaultYScale,
   strictNaN,
-  useShouldComponentUpdate
+  useShouldComponentUpdate,
+  getScale
 } from "./utils"
 
 import "./avl-graph.css"
 
 const DefaultHoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat, showTotals = true }) => {
-  const theme = useTheme();
   return (
     <div className={ `
       flex flex-col px-2 pt-1 rounded
@@ -102,9 +104,9 @@ export const BarGraph = props => {
     margin = EmptyObject,
     hoverComp = EmptyObject,
     axisBottom = null,
-    xScale = null,
+    xScale = EmptyObject,
     axisLeft = null,
-    yScale = null,
+    yScale = EmptyObject,
     axisRight = null,
     indexBy = "index",
     className = "",
@@ -158,66 +160,54 @@ export const BarGraph = props => {
     const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
       adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    let xDomain = data.map(d => d[indexBy]);
+    const xdGetter = data => data.map(d => get(d, indexBy, null)).filter(d => !strictNaN(d));
 
-    let yDomain = [];
-    if (xDomain.length) {
-      if (groupMode === "stacked") {
-        yDomain = data.reduce((a, c) => {
-          const y = keys.reduce((a, k) => a + get(c, k, 0), 0);
-          if (!strictNaN(y)) {
-            return [0, Math.max(y, get(a, 1, 0))];
-          }
-          return a;
-        }, []);
-      }
-      else if (groupMode === "grouped") {
-        yDomain = data.reduce((a, c) => {
-          const y = keys.reduce((a, k) => Math.max(a, get(c, k, 0)), 0);
-          if (!strictNaN(y)) {
-            return [0, Math.max(y, get(a, 1, 0))];
-          }
-          return a;
-        }, []);
-      }
-    }
-
-    // const [xDomain, yDomain] = data.reduce((a, c) => {
-    //   let [xd, yd] = a;
-    //   xd.push(c[indexBy]);
-    //   const y = keys.reduce((a, k) => a + c[k], 0);
-    //   if (yd.length) {
-    //     const [y1, y2] = yd;
-    //     return [xd, [y1, Math.max(y, y2)]];
-    //   }
-    //   if (y) {
-    //     return [xd, [0, y]];
-    //   }
-    //   return [xd, yd];
-    // }, [[], []]);
-
-    const XScale = scaleBand()
-      .paddingInner(padding || paddingInner)
-      .paddingOuter(padding || paddingOuter)
-      .domain(xDomain)
-      .range([0, adjustedWidth]);
-    if (xScale) {
-      xDomain = get(xScale, "domain", xDomain);
-      XScale.domain(xDomain);
-    }
+    const XScale = getScale({ ...DefaultXScale, ...xScale, type: "band",
+                              getter: xdGetter, data,
+                              range: [0, adjustedWidth],
+                              padding, paddingInner, paddingOuter
+                            });
+    const xDomain = XScale.domain();
 
     const bandwidth = XScale.bandwidth(),
       step = XScale.step(),
       outer = XScale.paddingOuter() * step;
 
-    const zeroYdomain = (yDomain[0] === 0) && (yDomain[1] === 0);
+    const ydGetter = data => {
+      if (xDomain.length) {
+        if (groupMode === "stacked") {
+          return data.reduce((a, c) => {
+            const y = keys.reduce((a, k) => a + get(c, k, 0), 0);
+            if (!strictNaN(y)) {
+              return [0, Math.max(y, get(a, 1, 0))];
+            }
+            return a;
+          }, []);
+        }
+        else if (groupMode === "grouped") {
+          return data.reduce((a, c) => {
+            const y = keys.reduce((a, k) => Math.max(a, get(c, k, 0)), 0);
+            if (!strictNaN(y)) {
+              return [0, Math.max(y, get(a, 1, 0))];
+            }
+            return a;
+          }, []);
+        }
+      }
+      else {
+        return [0, 0];
+      }
+    }
 
-    const YScale = scaleLinear()
-      .domain(yDomain)
-      .range([adjustedHeight, zeroYdomain ? adjustedHeight : 0]);
-    if (yScale) {
-      yDomain = get(yScale, "domain", yDomain);
-      YScale.domain(yDomain);
+    const YScale = getScale({ ...DefaultYScale, ...yScale,
+                              getter: ydGetter, data,
+                              range: [adjustedHeight, 0]
+                            });
+    const yDomain = YScale.domain();
+
+    const zeroYdomain = (yDomain[0] === 0) && (yDomain[1] === 0);
+    if (zeroYdomain) {
+      YScale.range([adjustedHeight, adjustedHeight]);
     }
 
     const colorFunc = getColorFunc(colors);

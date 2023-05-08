@@ -3,7 +3,21 @@ import colorbrewer from "colorbrewer"
 import isEqual from "lodash/isEqual"
 import get from "lodash/get"
 
+import {
+  scaleBand,
+  scalePoint,
+  scaleOrdinal,
+  scaleLinear,
+  scalePow,
+  scaleLog,
+  scaleSymlog,
+  scaleQuantize,
+  scaleQuantile
+} from "d3-scale"
+
+
 const ColorRanges = {}
+
 
 for (const type in colorbrewer.schemeGroups) {
   colorbrewer.schemeGroups[type].forEach(name => {
@@ -34,6 +48,8 @@ export const getColorRange = (size, name, reverse=false) => {
   return range
 }
 
+
+
 const DEFAULT_COLORS = getColorRange(12, "Set3");
 
 
@@ -59,13 +75,74 @@ export const getColorFunc = colors => {
   }
 }
 
+export const strictNaN = v => (v === null) || isNaN(v);
+
+export const DefaultXScale = {
+  type: "band",
+  domain: []
+}
+export const DefaultYScale = {
+  type: "linear",
+  domain: []
+}
+
+const ScaleMap = {
+  "band": scaleBand,
+  "point": scalePoint,
+  "ordinal": scaleOrdinal,
+  "linear": scaleLinear,
+  "power": scalePow,
+  "log": scaleLog,
+  "symlog": scaleSymlog,
+  "quantize": scaleQuantize,
+  "quantile": scaleQuantile
+}
+
+export const getScale = options => {
+  let {
+    type,
+    domain,
+    range,
+    data,
+    padding,
+    paddingInner,
+    paddingOuter,
+    getter,
+    exponent = 1,
+    base = 10
+  } = options;
+
+  if (!domain.length) {
+    domain = getter(data);
+  }
+
+console.log("GET SCALE:", type)
+
+  const scale = ScaleMap[type]()
+    .domain(domain)
+    .range(range);
+
+  if (type === "band") {
+    scale.paddingInner(padding || paddingInner)
+      .paddingOuter(padding || paddingOuter);
+  }
+  if (type === "point") {
+    scale.paddingOuter(padding || paddingOuter);
+  }
+  if (type === "power") {
+    scale.exponent(exponent);
+  }
+  if (type === "log") {
+    scale.base(base);
+  }
+  return scale
+}
+
 export const Identity = i => i;
 
 export const EmptyArray = [];
 
 export const EmptyObject = {};
-
-export const strictNaN = v => (v === null) || isNaN(v);
 
 export const DefaultMargin = {
   left: 70,
@@ -99,6 +176,12 @@ export const useShouldComponentUpdate = (props, width, height) => {
   return ShouldComponentUpdate;
 }
 
+const getRect = ref => {
+  const node = ref ? ref.current : ref;
+  if (!node) return { width: 0, height: 0 };
+  return node.getBoundingClientRect();
+}
+
 export const useSetSize = (ref, callback) => {
   const [size, setSize] = React.useState({ width: 0, height: 0, x: 0, y: 0 });
 
@@ -125,4 +208,26 @@ export const useSetSize = (ref, callback) => {
   });
 
   return size;
+}
+
+export const theme = {
+  textBase: "text-base",
+    textSmall: "text-sm",
+    textLarge: "text-lg",
+    paddingBase: "py-1 px-2",
+    paddingSmall: "py-0 px-1",
+    paddingLarge: "py-2 px-4",
+
+    contentBg: "bg-white",
+
+    accent1: "bg-blue-100",
+    accent2: "bg-gray-300",
+    accent3: "bg-gray-400",
+    accent4: "bg-gray-500",
+
+    highlight1: "bg-blue-200",
+    highlight2: "bg-blue-300",
+    highlight3: "bg-blue-400",
+    highlight4: "bg-blue-500"
+
 }
