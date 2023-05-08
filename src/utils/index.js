@@ -80,8 +80,6 @@ export const getScale = options => {
     domain = getter(data);
   }
 
-console.log("GET SCALE:", type)
-
   const scale = ScaleMap[type]()
     .domain(domain)
     .range(range);
