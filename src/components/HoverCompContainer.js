@@ -1,6 +1,6 @@
 import React from "react"
 
-import throttle from "lodash.throttle"
+import throttle from "lodash/throttle"
 
 const getTranslate = ({ pos, svgWidth, svgHeight, margin, position }) => {
 
