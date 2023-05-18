@@ -75,7 +75,7 @@ const DefaultHoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat, sho
           </div>
         </div>
       }
-    </div>
+    </div>  
   )
 }
 const DefaultHoverCompData = {
@@ -116,7 +116,7 @@ export const BarGraph = props => {
     colors,
     groupMode = "stacked"
   } = props;
-
+ 
   const Margin = React.useMemo(() => {
     return { ...DefaultMargin, ...margin };
   }, [margin]);
@@ -152,133 +152,97 @@ export const BarGraph = props => {
 
   const ShouldComponentUpdate = useShouldComponentUpdate(props, width, height);
 
-  React.useEffect(() => {
-    if (!(width && height)) return;
+    React.useEffect(() => {
+      if ((width && height) || ShouldComponentUpdate) {
 
-    if (!ShouldComponentUpdate) return;
+      const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
+        adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
-      adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
+      const xdGetter = data => data.map(d => get(d, indexBy, null)).filter(d => strictNaN(d));
+      const XScale = getScale({ ...DefaultXScale, ...xScale, type: "band",  
+                                getter: xdGetter, data,
+                                range: [0, adjustedWidth],
+                                padding, paddingInner, paddingOuter
+                              });
+      const xDomain = XScale.domain();
+      
+      const bandwidth = XScale.bandwidth(),
+        step = XScale.step(),
+        outer = XScale.paddingOuter() * step;
 
-    const xdGetter = data => data.map(d => get(d, indexBy, null)).filter(d => !strictNaN(d));
+      const ydGetter = data => {
+        if (xDomain.length) {
+          if (groupMode === "stacked") {
+            return data.reduce((a, c) => {
+              const y = keys.reduce((a, k) => a + get(c, k, 0), 0);
+              if (!strictNaN(y)) {
+                return [0, Math.max(y, get(a, 1, 0))];
+              }
+              return a;
+            }, []);
+          }
+          else if (groupMode === "grouped") {
+            return data.reduce((a, c) => {
+              const y = keys.reduce((a, k) => Math.max(a, get(c, k, 0)), 0);
+              if (!strictNaN(y)) {
+                return [0, Math.max(y, get(a, 1, 0))];
+              }
+              return a;
+            }, []);
+          }
+        }
+        else {
+          return [0, 0];
+        }
+      }
 
-    const XScale = getScale({ ...DefaultXScale, ...xScale, type: "band",
-                              getter: xdGetter, data,
-                              range: [0, adjustedWidth],
-                              padding, paddingInner, paddingOuter
-                            });
-    const xDomain = XScale.domain();
+      const YScale = getScale({ ...DefaultYScale, ...yScale,
+                                getter: ydGetter, data,
+                                range: [adjustedHeight, 0]
+                              });
+      const yDomain = YScale.domain();
 
-    const bandwidth = XScale.bandwidth(),
-      step = XScale.step(),
-      outer = XScale.paddingOuter() * step;
+      const zeroYdomain = (yDomain[0] === 0) && (yDomain[1] === 0);
+      if (zeroYdomain) {
+        YScale.range([adjustedHeight, adjustedHeight]);
+      }
 
-    const ydGetter = data => {
-      if (xDomain.length) {
+      const colorFunc = getColorFunc(colors);
+
+      const [updating, exiting] = barData.current.reduce((a, c) => {
+        const [u, e] = a;
+        u[c.id] = "updating";
+        e[c.id] = c;
+        c.state = "exiting";
+        return [u, e];
+      }, [{}, {}]);
+
+      barData.current = data.map((d, i) => {
+
+        delete exiting[d[indexBy]];
+
+        const barValues = {};
+
         if (groupMode === "stacked") {
-          return data.reduce((a, c) => {
-            const y = keys.reduce((a, k) => a + get(c, k, 0), 0);
-            if (!strictNaN(y)) {
-              return [0, Math.max(y, get(a, 1, 0))];
-            }
-            return a;
-          }, []);
-        }
-        else if (groupMode === "grouped") {
-          return data.reduce((a, c) => {
-            const y = keys.reduce((a, k) => Math.max(a, get(c, k, 0)), 0);
-            if (!strictNaN(y)) {
-              return [0, Math.max(y, get(a, 1, 0))];
-            }
-            return a;
-          }, []);
-        }
-      }
-      else {
-        return [0, 0];
-      }
-    }
+          let current = adjustedHeight;
 
-    const YScale = getScale({ ...DefaultYScale, ...yScale,
-                              getter: ydGetter, data,
-                              range: [adjustedHeight, 0]
-                            });
-    const yDomain = YScale.domain();
-
-    const zeroYdomain = (yDomain[0] === 0) && (yDomain[1] === 0);
-    if (zeroYdomain) {
-      YScale.range([adjustedHeight, adjustedHeight]);
-    }
-
-    const colorFunc = getColorFunc(colors);
-
-    const [updating, exiting] = barData.current.reduce((a, c) => {
-      const [u, e] = a;
-      u[c.id] = "updating";
-      e[c.id] = c;
-      c.state = "exiting";
-      return [u, e];
-    }, [{}, {}]);
-
-    barData.current = data.map((d, i) => {
-
-      delete exiting[d[indexBy]];
-
-      const barValues = {};
-
-      if (groupMode === "stacked") {
-        let current = adjustedHeight;
-
-        const stacks = keys.map((key, ii) => {
-          const value = get(d, key, 0),
-            height = Math.max(0, adjustedHeight - YScale(value)),
-            color = colorFunc(value, ii, d, key);
-
-          current -= height;
-
-          barValues[key] = { value, color };
-
-          const stack = {
-              data: d,
-              key,
-              width: bandwidth,
-              height,
-              index: d[indexBy],
-              y: current,
-              x: 0,
-              color,
-              value,
-              barValues
-            };
-          return stack;
-        });
-
-        return {
-          stacks,
-          barValues,
-          left: XScale(d[indexBy]),
-          data: d,
-          state: get(updating, d[indexBy], "entering"),
-          id: d[indexBy].toString()
-        };
-      }
-      else if (groupMode === "grouped") {
-        const stacks = keys.slice()
-          .map((key, ii) => {
+          const stacks = keys.map((key, ii) => {
             const value = get(d, key, 0),
-              y = Math.min(adjustedHeight, YScale(value)),
-              color = colorFunc(d, ii, key);
+              height = Math.max(0, adjustedHeight - YScale(value)),
+              color = colorFunc(value, ii, d, key);
+
+            current -= height;
 
             barValues[key] = { value, color };
 
             const stack = {
                 data: d,
                 key,
-                width: bandwidth / keys.length,
-                height: adjustedHeight - y,
+                width: bandwidth,
+                height,
                 index: d[indexBy],
-                y,
-                x: (bandwidth / keys.length) * ii,
+                y: current,
+                x: 0,
                 color,
                 value,
                 barValues
@@ -286,31 +250,65 @@ export const BarGraph = props => {
             return stack;
           });
 
-        return {
-          stacks,
-          barValues,
-          left: outer + i * step,
-          data: d,
-          state: get(updating, d[indexBy], "entering"),
-          id: d[indexBy].toString()
-        };
+          return {
+            stacks,
+            barValues,
+            left: XScale(d[indexBy]),
+            data: d,
+            state: get(updating, d[indexBy], "entering"),
+            id: d[indexBy].toString()
+          };
+        }
+        else if (groupMode === "grouped") {
+          const stacks = keys.slice()
+            .map((key, ii) => {
+              const value = get(d, key, 0),
+                y = Math.min(adjustedHeight, YScale(value)),
+                color = colorFunc(d, ii, key);
+
+              barValues[key] = { value, color };
+
+              const stack = {
+                  data: d,
+                  key,
+                  width: bandwidth / keys.length,
+                  height: adjustedHeight - y,
+                  index: d[indexBy],
+                  y,
+                  x: (bandwidth / keys.length) * ii,
+                  color,
+                  value,
+                  barValues
+                };
+              return stack;
+            });
+
+          return {
+            stacks,
+            barValues,
+            left: outer + i * step,
+            data: d,
+            state: get(updating, d[indexBy], "entering"),
+            id: d[indexBy].toString()
+          };
+        }
+        return { stacks: [] }
+      });
+
+      exitingData.current = exiting;
+      const exitingAsArray = Object.values(exiting);
+
+      if (exitingAsArray.length) {
+        setTimeout(exitData, 1050);
       }
-      return { stacks: [] }
-    });
 
-    exitingData.current = exiting;
-    const exitingAsArray = Object.values(exiting);
+      barData.current = barData.current.concat(exitingAsArray);
 
-    if (exitingAsArray.length) {
-      setTimeout(exitData, 1050);
+      setState({
+        xDomain, yDomain, XScale, YScale,
+        adjustedWidth, adjustedHeight
+      });
     }
-
-    barData.current = barData.current.concat(exitingAsArray);
-
-    setState({
-      xDomain, yDomain, XScale, YScale,
-      adjustedWidth, adjustedHeight
-    });
   }, [data, keys, width, height, groupMode,
       Margin, colors, indexBy, exitData,
       padding, paddingInner, paddingOuter,

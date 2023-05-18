@@ -220,203 +220,202 @@ export const GridGraph = props => {
   const ShouldComponentUpdate = useShouldComponentUpdate(props, width, height);
 
   React.useEffect(() => {
-    if (!(width && height)) return;
-    if (!ShouldComponentUpdate) return;
+    if ((width && height) && ShouldComponentUpdate) {
+      const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
+        adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-    const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
-      adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
+      const xDomain = keys;
 
-    const xDomain = keys;
+      let dataWidth = keys.length;
 
-    let dataWidth = keys.length;
+      dataWidth = keys.reduce((a, c) => {
+        return a + get(keyWidths, c, 1);
+      }, 0);
 
-    dataWidth = keys.reduce((a, c) => {
-      return a + get(keyWidths, c, 1);
-    }, 0);
+      const [yDomain, dataHeight] = Data.reduce((a, c) => {
+        let [yd, dh, dw] = a;
+        yd.push(c[indexBy]);
+        const h = +get(c, "height", 1);
+        const w = +get(c, "width", 1);
+        return [yd, dh + h, dw + w];
+      }, [[], 0]);
 
-    const [yDomain, dataHeight] = Data.reduce((a, c) => {
-      let [yd, dh, dw] = a;
-      yd.push(c[indexBy]);
-      const h = +get(c, "height", 1);
-      const w = +get(c, "width", 1);
-      return [yd, dh + h, dw + w];
-    }, [[], 0]);
+      const indexes = Data.map(d => d[indexBy]);
 
-    const indexes = Data.map(d => d[indexBy]);
+      const wScale = scaleLinear()
+        .domain([0, dataWidth])
+        .range([0, adjustedWidth]);
 
-    const wScale = scaleLinear()
-      .domain([0, dataWidth])
-      .range([0, adjustedWidth]);
+      const xRange = [0];
+      const xScale = scaleOrdinal()
+        .domain(["tick-1", ...xDomain, "tick-2"]);
 
-    const xRange = [0];
-    const xScale = scaleOrdinal()
-      .domain(["tick-1", ...xDomain, "tick-2"]);
+      const hScale = scaleLinear()
+        .domain([0, dataHeight])
+        .range([0, adjustedHeight]);
 
-    const hScale = scaleLinear()
-      .domain([0, dataHeight])
-      .range([0, adjustedHeight]);
+      const yRange = [0];
+      const yScale = scaleOrdinal()
+        .domain(["tick-1", ...yDomain, "tick-2"]);
 
-    const yRange = [0];
-    const yScale = scaleOrdinal()
-      .domain(["tick-1", ...yDomain, "tick-2"]);
+      const yTickValues = [];
 
-    const yTickValues = [];
+      const colorFunc = getColorFunc(colors);
 
-    const colorFunc = getColorFunc(colors);
+      const [updating, exiting] = gridData.current.reduce((a, c) => {
+        const [u, e] = a;
+        u[c.id] = "updating";
+        e[c.id] = c;
+        c.state = "exiting";
+        return [u, e];
+      }, [{}, {}]);
 
-    const [updating, exiting] = gridData.current.reduce((a, c) => {
-      const [u, e] = a;
-      u[c.id] = "updating";
-      e[c.id] = c;
-      c.state = "exiting";
-      return [u, e];
-    }, [{}, {}]);
+      let top = 0;
 
-    let top = 0;
+      const indexData = xDomain.reduce((a, c) => {
+        a[c] = {};
+        return a;
+      }, {});
 
-    const indexData = xDomain.reduce((a, c) => {
-      a[c] = {};
-      return a;
-    }, {});
+      pointData.current = [];
+      spanLines.current = [];
+      boundRects.current = [];
 
-    pointData.current = [];
-    spanLines.current = [];
-    boundRects.current = [];
+      const spanData = [];
+      const pointPositions = {};
 
-    const spanData = [];
-    const pointPositions = {};
+      const boundsData = {};
 
-    const boundsData = {};
+      gridData.current = Data.map((d, i) => {
 
-    gridData.current = Data.map((d, i) => {
+        let left = 0;
 
-      let left = 0;
+        const index = d[indexBy];
 
-      const index = d[indexBy];
+        pointPositions[index] = {};
 
-      pointPositions[index] = {};
+        const pointsForIndex = get(pointsMap, index, {});
+        const boundsForIndex = get(boundsMap, index, {});
 
-      const pointsForIndex = get(pointsMap, index, {});
-      const boundsForIndex = get(boundsMap, index, {});
+        delete exiting[index];
 
-      delete exiting[index];
+        const height = hScale(get(d, "height", 1));
 
-      const height = hScale(get(d, "height", 1));
-
-      yRange.push(top + height * 0.5);
-      if (height >= 14) {
-        yTickValues.push(index);
-      }
-
-      const grid = xDomain.map((x, ii) => {
-        const value = get(d, x, null),
-          width = wScale(get(keyWidths, x, 1)),
-          xLeft = left,
-          color = value === null ? nullColor : colorFunc(value, ii, d, x);
-
-        if (i === 0) {
-          xRange.push(xLeft + width * 0.5);
+        yRange.push(top + height * 0.5);
+        if (height >= 14) {
+          yTickValues.push(index);
         }
 
-        left += width;
+        const grid = xDomain.map((x, ii) => {
+          const value = get(d, x, null),
+            width = wScale(get(keyWidths, x, 1)),
+            xLeft = left,
+            color = value === null ? nullColor : colorFunc(value, ii, d, x);
 
-        indexData[x][index] = { value, color };
-
-        if (x in pointsForIndex) {
-          const { index, key, spanTo, ...rest } = pointsForIndex[x];
-          const point = {
-            ...DefaultPoint,
-            ...rest,
-            cx: xLeft + width * 0.5,
-            cy: top + height * 0.5,
-            key: `${ index }-${ key }`
+          if (i === 0) {
+            xRange.push(xLeft + width * 0.5);
           }
-          pointData.current.push(point);
-          pointPositions[index][key] = point;
 
-          if (spanTo) {
-            spanData.push([index, key, spanTo])
-          }
-        }
+          left += width;
 
-        const { bounds = [], ...rest } = boundsForIndex;
+          indexData[x][index] = { value, color };
 
-        if (bounds.includes(x)) {
-          if (index in boundsData) {
-            boundsData[index].width = xLeft + width - boundsData[index].x;
-          }
-          else {
-            boundsData[index] = {
-              ...DefaultBoundsRect,
+          if (x in pointsForIndex) {
+            const { index, key, spanTo, ...rest } = pointsForIndex[x];
+            const point = {
+              ...DefaultPoint,
               ...rest,
-              x: xLeft,
-              y: top,
-              height,
-              key: index
+              cx: xLeft + width * 0.5,
+              cy: top + height * 0.5,
+              key: `${ index }-${ key }`
+            }
+            pointData.current.push(point);
+            pointPositions[index][key] = point;
+
+            if (spanTo) {
+              spanData.push([index, key, spanTo])
             }
           }
-        }
 
-        return {
+          const { bounds = [], ...rest } = boundsForIndex;
+
+          if (bounds.includes(x)) {
+            if (index in boundsData) {
+              boundsData[index].width = xLeft + width - boundsData[index].x;
+            }
+            else {
+              boundsData[index] = {
+                ...DefaultBoundsRect,
+                ...rest,
+                x: xLeft,
+                y: top,
+                height,
+                key: index
+              }
+            }
+          }
+
+          return {
+            data: d,
+            key: x,
+            width,
+            height,
+            index,
+            x: xLeft,
+            color,
+            value,
+            indexData: indexData[x],
+            indexes
+          };
+        }, []);
+
+        const horizontal = {
+          className: get(d, "className", null),
+          grid,
+          top,
           data: d,
-          key: x,
-          width,
-          height,
-          index,
-          x: xLeft,
-          color,
-          value,
-          indexData: indexData[x],
-          indexes
+          state: get(updating, index, "entering"),
+          id: String(index)
         };
-      }, []);
+        top += height;
+        return horizontal;
+      });
 
-      const horizontal = {
-        className: get(d, "className", null),
-        grid,
-        top,
-        data: d,
-        state: get(updating, index, "entering"),
-        id: String(index)
-      };
-      top += height;
-      return horizontal;
-    });
-
-    spanData.forEach(([index, from, to]) => {
-      const p1 = get(pointPositions, [index, from]),
-        p2 = get(pointPositions, [index, to]);
-      spanLines.current.push({
-        x1: p1.cx,
-        y1: p1.cy,
-        x2: p2.cx,
-        y2: p2.cy,
-        stroke: "#0ff",
-        strokeWidth: 1,
-        key: `${ p1.key }-${ p2.key }`
+      spanData.forEach(([index, from, to]) => {
+        const p1 = get(pointPositions, [index, from]),
+          p2 = get(pointPositions, [index, to]);
+        spanLines.current.push({
+          x1: p1.cx,
+          y1: p1.cy,
+          x2: p2.cx,
+          y2: p2.cy,
+          stroke: "#0ff",
+          strokeWidth: 1,
+          key: `${ p1.key }-${ p2.key }`
+        })
       })
-    })
 
-    boundRects.current = Object.values(boundsData);
+      boundRects.current = Object.values(boundsData);
 
-    xRange.push(adjustedWidth);
-    xScale.range(xRange);
+      xRange.push(adjustedWidth);
+      xScale.range(xRange);
 
-    yRange.push(adjustedHeight);
-    yScale.range(yRange);
+      yRange.push(adjustedHeight);
+      yScale.range(yRange);
 
-    const exitingAsArray = Object.values(exiting);
+      const exitingAsArray = Object.values(exiting);
 
-    if (exitingAsArray.length) {
-      setTimeout(exitData, 1050, exiting);
+      if (exitingAsArray.length) {
+        setTimeout(exitData, 1050, exiting);
+      }
+
+      gridData.current = gridData.current.concat(exitingAsArray);
+
+      setState({
+        xDomain, yDomain, xScale, yScale,
+        adjustedWidth, adjustedHeight, yTickValues
+      });
     }
-
-    gridData.current = gridData.current.concat(exitingAsArray);
-
-    setState({
-      xDomain, yDomain, xScale, yScale,
-      adjustedWidth, adjustedHeight, yTickValues
-    });
   }, [Data, keys, width, height, Margin, gridData,
       colors, indexBy, boundsMap, exitData, pointsMap,
       keyWidths, nullColor, ShouldComponentUpdate]
