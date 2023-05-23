@@ -7,9 +7,9 @@ import { sum as d3sum, extent as d3extent, range as d3range } from "d3-array"
 import * as d3shape from "d3-shape"
 import { interpolate as d3interpolate } from "d3-interpolate"
 
-import get from "lodash.get"
+import get from "lodash/get"
 
-import { useTheme, useSetSize } from "@availabs/avl-components"
+import { useTheme, useSetSize } from "~/modules/avl-components/src"
 
 import {
   HoverCompContainer,

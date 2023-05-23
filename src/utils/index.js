@@ -1,9 +1,9 @@
 import React from "react"
 
 import deepequal from "deepequal"
-import get from "lodash.get"
+import get from "lodash/get"
 
-import { getColorRange } from "@availabs/avl-components"
+import { getColorRange } from "~/modules/avl-components/src"
 
 const DEFAULT_COLORS = getColorRange(12, "Set3");
 
