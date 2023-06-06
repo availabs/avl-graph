@@ -33,11 +33,10 @@ export const AxisLeft = props => {
 }
 
 const renderAxisLeft = (ref,
-                        adjustedWidth,
-                        adjustedHeight,
+                        adjustedWidth, adjustedHeight,
                         domain, scale, type, format,
-                        secondary, label,
-                        margin, ticks, tickValues, showGridLines, gridLineOpacity,
+                        secondary, label, margin,
+                        ticks, tickValues, showGridLines, gridLineOpacity,
                         axisColor, axisOpacity) => {
 
   const { left, top } = margin;
@@ -126,7 +125,7 @@ const renderAxisLeft = (ref,
       .attr("font-size", "1rem")
       .text(d => d);
 
-  if (type !== "linear" || !showGridLines) return;
+  if (type !== "linear" || !showGridLines || !scale) return;
 
   const gridLines = group.selectAll("line.grid-line"),
     numGridLines = gridLines.size(),
