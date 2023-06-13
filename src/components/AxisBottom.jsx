@@ -34,13 +34,10 @@ export const AxisBottom = props => {
 }
 
 const renderAxisBottom = ({ ref,
-                    adjustedWidth,
-                    adjustedHeight,
-                    domain, scale, format,
-                    secondary, label,
-                    tickValues, type,
-                    margin, tickDensity,
-                    axisColor, axisOpacity}) => {
+                    adjustedWidth, adjustedHeight, type,
+                    domain, scale, format, tickValues,
+                    secondary, label, margin, tickDensity,
+                    axisColor, axisOpacity }) => {
 
   const { left, top, bottom } = margin;
 
@@ -74,7 +71,6 @@ const renderAxisBottom = ({ ref,
       }
     }
   }
-
 
   const axisBottom = d3AxisBottom(scale)
     .tickValues(tickValues)
