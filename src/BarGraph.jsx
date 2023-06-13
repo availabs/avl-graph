@@ -90,8 +90,8 @@ const DefaultHoverCompData = {
 const InitialState = {
   xDomain: [],
   yDomain: [],
-  XScale: null,
-  YScale: null,
+  XScale: scaleBand(),
+  YScale: scaleLinear(),
   adjustedWidth: 0,
   adjustedHeight: 0
 }
