@@ -75,7 +75,7 @@ const DefaultHoverComp = ({ data, keys, indexFormat, keyFormat, valueFormat, sho
           </div>
         </div>
       }
-    </div>  
+    </div>
   )
 }
 const DefaultHoverCompData = {
@@ -90,8 +90,8 @@ const DefaultHoverCompData = {
 const InitialState = {
   xDomain: [],
   yDomain: [],
-  XScale: null,
-  YScale: null,
+  XScale: scaleBand(),
+  YScale: scaleLinear(),
   adjustedWidth: 0,
   adjustedHeight: 0
 }
@@ -114,9 +114,10 @@ export const BarGraph = props => {
     paddingOuter = 0,
     padding,
     colors,
-    groupMode = "stacked"
+    groupMode = "stacked",
+    addons = []
   } = props;
- 
+
   const Margin = React.useMemo(() => {
     return { ...DefaultMargin, ...margin };
   }, [margin]);
@@ -159,13 +160,13 @@ export const BarGraph = props => {
         adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
       const xdGetter = data => data.map(d => get(d, indexBy, null)).filter(d => strictNaN(d));
-      const XScale = getScale({ ...DefaultXScale, ...xScale, type: "band",  
+      const XScale = getScale({ ...DefaultXScale, ...xScale, type: "band",
                                 getter: xdGetter, data,
                                 range: [0, adjustedWidth],
                                 padding, paddingInner, paddingOuter
                               });
       const xDomain = XScale.domain();
-      
+
       const bandwidth = XScale.bandwidth(),
         step = XScale.step(),
         outer = XScale.paddingOuter() * step;
@@ -363,12 +364,20 @@ export const BarGraph = props => {
           </g>
         }
         <g style={ { transform: `translate(${ Margin.left }px, ${ Margin.top }px)` } }
-          onMouseLeave={ onMouseLeave }>
+          onMouseLeave={ onMouseLeave }
+        >
           { barData.current.map(({ id, ...rest }) =>
               <Bar key={ id } { ...rest }
                 svgHeight={ state.adjustedHeight }
                 onMouseMove={ onMouseMove }/>
             )
+          }
+          { !barData.current.length ? null :
+            addons.map((AddOn, i) => (
+              <AddOn key={ i } { ...state }
+                xScale={ XScale }
+                yScale={ YScale }/>
+            ))
           }
         </g>
       </svg>
