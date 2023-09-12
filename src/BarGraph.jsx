@@ -256,7 +256,7 @@ export const BarGraph = props => {
             left: XScale(d[indexBy]),
             data: d,
             state: get(updating, d[indexBy], "entering"),
-            id: d[indexBy].toString()
+            id: d?.[indexBy]?.toString() || '0'
           };
         }
         else if (groupMode === "grouped") {
