@@ -48,11 +48,7 @@ export const getColorRange = (size, name, reverse=false) => {
   return range
 }
 
-
-
 const DEFAULT_COLORS = getColorRange(12, "Set3");
-
-
 
 export const getColorFunc = colors => {
   if (typeof colors === "function") {

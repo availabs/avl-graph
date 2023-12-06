@@ -106,8 +106,8 @@ export const BarGraph = props => {
     axisBottom = null,
     xScale = EmptyObject,
     axisLeft = null,
-    yScale = EmptyObject,
     axisRight = null,
+    yScale = EmptyObject,
     indexBy = "index",
     className = "",
     paddingInner = 0,
@@ -115,6 +115,7 @@ export const BarGraph = props => {
     padding,
     colors,
     groupMode = "stacked",
+    orientation = "vertical",
     addons = []
   } = props;
 
@@ -153,8 +154,10 @@ export const BarGraph = props => {
 
   const ShouldComponentUpdate = useShouldComponentUpdate(props, width, height);
 
-    React.useEffect(() => {
-      if ((width && height) || ShouldComponentUpdate) {
+  const hori = orientation === "horizontal";
+
+  React.useEffect(() => {
+    if ((width && height) || ShouldComponentUpdate) {
 
       const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
         adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
@@ -162,7 +165,7 @@ export const BarGraph = props => {
       const xdGetter = data => data.map(d => get(d, indexBy, null)).filter(d => strictNaN(d));
       const XScale = getScale({ ...DefaultXScale, ...xScale, type: "band",
                                 getter: xdGetter, data,
-                                range: [0, adjustedWidth],
+                                range: hori ? [adjustedHeight, 0] : [0, adjustedWidth],
                                 padding, paddingInner, paddingOuter
                               });
       const xDomain = XScale.domain();
@@ -199,7 +202,7 @@ export const BarGraph = props => {
 
       const YScale = getScale({ ...DefaultYScale, ...yScale,
                                 getter: ydGetter, data,
-                                range: [adjustedHeight, 0]
+                                range: hori ? [0, adjustedWidth] : [adjustedHeight, 0]
                               });
       const yDomain = YScale.domain();
 
@@ -225,46 +228,53 @@ export const BarGraph = props => {
         const barValues = {};
 
         if (groupMode === "stacked") {
-          let current = adjustedHeight;
+          let current = hori ? 0 : adjustedHeight;
 
           const stacks = keys.map((key, ii) => {
             const value = get(d, key, 0),
-              height = Math.max(0, adjustedHeight - YScale(value)),
+              width = hori ? YScale(value) : bandwidth,
+              height = hori ? bandwidth : Math.max(0, adjustedHeight - YScale(value)),
               color = colorFunc(value, ii, d, key);
 
-            current -= height;
+            if (!hori) {
+              current -= height;
+            }
 
             barValues[key] = { value, color };
 
             const stack = {
-                data: d,
-                key,
-                width: bandwidth,
-                height,
-                index: d[indexBy],
-                y: current,
-                x: 0,
-                color,
-                value,
-                barValues
-              };
+              data: d,
+              key,
+              width,
+              height,
+              index: d[indexBy],
+              y: hori ? 0 : current,
+              x: hori ? current : 0,
+              color,
+              value,
+              barValues
+            }
+
+            if (hori) {
+              current += width;
+            }
             return stack;
           });
 
           return {
             stacks,
             barValues,
-            left: XScale(d[indexBy]),
+            left: hori ? 0 : XScale(d[indexBy]),
+            top: hori ? XScale(d[indexBy]) : 0,
             data: d,
             state: get(updating, d[indexBy], "entering"),
             id: d[indexBy].toString()
           };
         }
         else if (groupMode === "grouped") {
-          const stacks = keys.slice()
-            .map((key, ii) => {
+          const stacks = keys.map((key, ii) => {
               const value = get(d, key, 0),
-                y = Math.min(adjustedHeight, YScale(value)),
+                y = hori ? (bandwidth / keys.length) * ii : Math.min(adjustedHeight, YScale(value)),
                 color = colorFunc(d, ii, key);
 
               barValues[key] = { value, color };
@@ -272,11 +282,11 @@ export const BarGraph = props => {
               const stack = {
                   data: d,
                   key,
-                  width: bandwidth / keys.length,
-                  height: adjustedHeight - y,
+                  width: hori ? YScale(value) : bandwidth / keys.length,
+                  height: hori ? bandwidth / keys.length : adjustedHeight - y,
                   index: d[indexBy],
                   y,
-                  x: (bandwidth / keys.length) * ii,
+                  x: hori ? 0 : (bandwidth / keys.length) * ii,
                   color,
                   value,
                   barValues
@@ -287,7 +297,8 @@ export const BarGraph = props => {
           return {
             stacks,
             barValues,
-            left: outer + i * step,
+            left: hori ? 0 : outer + i * step,
+            top: hori ? adjustedHeight - (outer + (i + 1) * step) : 0,
             data: d,
             state: get(updating, d[indexBy], "entering"),
             id: d[indexBy].toString()
@@ -313,7 +324,7 @@ export const BarGraph = props => {
   }, [data, keys, width, height, groupMode,
       Margin, colors, indexBy, exitData,
       padding, paddingInner, paddingOuter,
-      ShouldComponentUpdate
+      ShouldComponentUpdate, orientation
     ]
   );
 
@@ -339,29 +350,59 @@ export const BarGraph = props => {
 
       <svg className={ `w-full h-full block avl-graph ${ className }` }>
         { !barData.current.length ? null :
-          <g>
-            { !axisBottom ? null :
-              <AxisBottom { ...restOfState }
-                margin={ Margin }
-                scale={ XScale }
-                domain={ xDomain }
-                { ...axisBottom }/>
-            }
-            { !axisLeft ? null :
-              <AxisLeft { ...restOfState }
-                margin={ Margin }
-                scale={ YScale }
-                domain={ yDomain }
-                { ...axisLeft }/>
-            }
-            { !axisRight ? null :
-              <AxisRight { ...restOfState }
-                margin={ Margin }
-                scale={ YScale }
-                domain={ yDomain }
-                { ...axisRight }/>
-            }
-          </g>
+          orientation === "horizontal" ?
+            <g>
+              { !axisBottom ? null :
+                <AxisBottom type="linear"
+                  { ...restOfState }
+                  margin={ Margin }
+                  scale={ YScale }
+                  domain={ yDomain }
+                  { ...axisBottom }/>
+              }
+              { !axisLeft ? null :
+                <AxisLeft type="band"
+                  { ...restOfState }
+                  margin={ Margin }
+                  scale={ XScale }
+                  domain={ xDomain }
+                  { ...axisLeft }/>
+              }
+              { !axisRight ? null :
+                <AxisRight type="band"
+                  { ...restOfState }
+                  margin={ Margin }
+                  scale={ XScale }
+                  domain={ xDomain }
+                  { ...axisRight }/>
+              }
+            </g> :
+            <g>
+              { !axisBottom ? null :
+                <AxisBottom type="band"
+                  { ...restOfState }
+                  margin={ Margin }
+                  scale={ XScale }
+                  domain={ xDomain }
+                  { ...axisBottom }/>
+              }
+              { !axisLeft ? null :
+                <AxisLeft type="linear"
+                  { ...restOfState }
+                  margin={ Margin }
+                  scale={ YScale }
+                  domain={ yDomain }
+                  { ...axisLeft }/>
+              }
+              { !axisRight ? null :
+                <AxisRight type="linear"
+                  { ...restOfState }
+                  margin={ Margin }
+                  scale={ YScale }
+                  domain={ yDomain }
+                  { ...axisRight }/>
+              }
+            </g>
         }
         <g style={ { transform: `translate(${ Margin.left }px, ${ Margin.top }px)` } }
           onMouseLeave={ onMouseLeave }
@@ -452,21 +493,21 @@ const Stack = React.memo(props => {
   )
 })
 
-const Bar = React.memo(({ stacks, left, state, ...props }) => {
+const Bar = React.memo(({ stacks, left = 0, top = 0, state, ...props }) => {
 
   const ref = React.useRef();
 
   React.useEffect(() => {
     if (state === "entering") {
       d3select(ref.current)
-        .attr("transform", `translate(${ left } 0)`);
+        .attr("transform", `translate(${ left } ${ top })`);
     }
     else {
       d3select(ref.current)
         .transition().duration(1000)
-        .attr("transform", `translate(${ left } 0)`);
+        .attr("transform", `translate(${ left } ${ top })`);
     }
-  }, [ref, state, left]);
+  }, [ref, state, left, top]);
 
   return (
     <g className="avl-bar" ref={ ref }>

@@ -6,9 +6,10 @@ import { axisLeft as d3AxisLeft } from "d3-axis"
 
 export const AxisLeft = props => {
   const {
-    adjustedWidth, adjustedHeight, showGridLines = true, gridLineOpacity = 0.25, axisColor = "currentColor", axisOpacity = 1,
+    adjustedWidth, adjustedHeight, showGridLines = true,
+    gridLineOpacity = 0.25, axisColor = "currentColor", axisOpacity = 1,
     domain, scale, format, type = "linear",
-    secondary, label, margin, ticks = 10, tickValues
+    secondary, label, margin, ticks = 10, tickValues, tickDensity = 8
   } = props;
 
   const ref = React.useRef();
@@ -20,13 +21,13 @@ export const AxisLeft = props => {
         domain, scale, type, format,
         secondary, label, margin,
         ticks, tickValues, showGridLines, gridLineOpacity,
-        axisColor, axisOpacity
+        axisColor, axisOpacity, tickDensity
       );
     }
   }, [adjustedWidth, adjustedHeight, showGridLines,
       domain, scale, type, format,
       secondary, label, margin, ticks, tickValues,
-      gridLineOpacity, axisColor, axisOpacity]
+      gridLineOpacity, axisColor, axisOpacity, tickDensity]
   );
 
   return <g ref={ ref }/>;
@@ -37,16 +38,48 @@ const renderAxisLeft = (ref,
                         domain, scale, type, format,
                         secondary, label, margin,
                         ticks, tickValues, showGridLines, gridLineOpacity,
-                        axisColor, axisOpacity) => {
+                        axisColor, axisOpacity, tickDensity) => {
 
   const { left, top } = margin;
 
+  if (!tickValues && (type === "band")) {
+    const ticks = Math.ceil(adjustedHeight / 100 * tickDensity),
+      mod = Math.ceil(domain.length / ticks),
+      halfMod = Math.floor(mod * 0.5);
+
+    tickValues = domain.filter((d, i) =>
+      (mod === 1 || (i > 0)) &&
+      (mod === 1 || (i < (domain.length - 1))) &&
+      !((i - halfMod) % mod)
+    );
+  }
+  else if (!tickValues && (type === "ordinal")) {
+    const density = 100 / tickDensity;
+    let tick = 0;
+    tickValues = [];
+
+    for (let i = 0; i < domain.length; ++i) {
+      if (i > 0) {
+        tick += scale(domain[i]) - scale(domain[i - 1]);
+      }
+      if (!tickValues.length && (tick >= density * 0.5)) {
+        tickValues.push(domain[i]);
+        tick = 0;
+      }
+      else if (tick >= density) {
+        tickValues.push(domain[i]);
+        tick = 0;
+      }
+    }
+  }
+
   const axisLeft = d3AxisLeft(scale)
     .tickFormat(format);
+
   if (tickValues) {
     axisLeft.tickValues(tickValues);
   }
-  else {
+  else if (ticks) {
     axisLeft.ticks(ticks);
   }
 
@@ -125,19 +158,19 @@ const renderAxisLeft = (ref,
       .attr("font-size", "1rem")
       .text(d => d);
 
-  if (type !== "linear" || !showGridLines || !scale) return;
+  const show = (type === "linear") && showGridLines && scale && domain.length;
 
   const gridLines = group.selectAll("line.grid-line"),
     numGridLines = gridLines.size(),
-    numTicks = scale.ticks(ticks).length,
+    numTicks = show ? scale.ticks(ticks).length : 0,
 
-    gridEnter = numGridLines && (numGridLines < numTicks) ?
-      scale(domain[1] * 1.5) : scale(0),
+    gridEnter = show ? numGridLines && (numGridLines < numTicks) ?
+      scale(domain[1] * 1.5) : scale(domain[1]) : 0,
 
-    gridExit = scale(domain[1] * 1.5);
+    gridExit = show ? scale(domain[1] * 1.5) : adjustedHeight;
 
   gridLines
-    .data(domain.length ? scale.ticks(ticks) : [])
+    .data(show ? scale.ticks(ticks) : [])
     .join(
       enter => enter.append("line")
         .attr("class", "grid-line")

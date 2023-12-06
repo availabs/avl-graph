@@ -9,7 +9,7 @@ export const AxisRight = props => {
   const {
     adjustedWidth, adjustedHeight, showGridLines = true, gridLineOpacity = 0.25, axisColor = "currentColor", axisOpacity = 1,
     domain, scale, format, type = "linear",
-    secondary, label, margin, ticks = 10
+    secondary, label, margin, ticks = 10, tickValues
   } = props;
 
   const ref = React.useRef();
@@ -19,13 +19,13 @@ export const AxisRight = props => {
       renderAxisRight(ref.current,
         adjustedWidth, adjustedHeight,
         domain, scale, type, format,
-        secondary, label, margin, ticks, showGridLines, gridLineOpacity,
+        secondary, label, margin, ticks, tickValues, showGridLines, gridLineOpacity,
         axisColor, axisOpacity
       );
     }
   }, [adjustedWidth, adjustedHeight, showGridLines,
       domain, scale, type, format,
-      secondary, label, margin, ticks,
+      secondary, label, margin, ticks, tickValues,
       gridLineOpacity, axisColor, axisOpacity]
   );
 
@@ -37,22 +37,20 @@ const renderAxisRight = (ref,
                     adjustedHeight,
                     domain, scale, type, format,
                     secondary, label,
-                    margin, ticks, showGridLines, gridLineOpacity,
+                    margin, ticks, tickValues, showGridLines, gridLineOpacity,
                     axisColor, axisOpacity) => {
 
   const { left, right, top } = margin;
 
-  // const Scale = scaleLinear()
-  //   .domain(domain)
-  //   .range(scale.range().slice().reverse());
-  //
-  // const axisRight = d3AxisRight(Scale)
-  //   .tickFormat(format)
-  //   .ticks(ticks);
-
   const axisRight = d3AxisRight(scale)
-    .tickFormat(format)
-    .ticks(ticks);
+    .tickFormat(format);
+
+  if (tickValues) {
+    axisRight.tickValues(tickValues);
+  }
+  else if (ticks) {
+    axisRight.ticks(ticks);
+  }
 
   const transition = d3transition().duration(1000);
 

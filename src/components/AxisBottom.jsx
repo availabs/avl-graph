@@ -7,9 +7,10 @@ import { axisBottom as d3AxisBottom } from "d3-axis"
 export const AxisBottom = props => {
   const {
     adjustedWidth, adjustedHeight, type = "band",
-    domain, scale, format, tickValues,
+    domain, scale, format, ticks, tickValues,
     secondary, label, margin, tickDensity = 2,
-    axisColor = "currentColor", axisOpacity = 1,
+    showGridLines = true,
+    gridLineOpacity = 0.25, axisColor = "currentColor", axisOpacity = 1
   } = props;
 
   const ref = React.useRef();
@@ -19,15 +20,15 @@ export const AxisBottom = props => {
       renderAxisBottom({
         ref: ref.current,
         adjustedWidth, adjustedHeight, type,
-        domain, scale, format, tickValues,
+        domain, scale, format, ticks, tickValues,
         secondary, label, margin, tickDensity,
-        axisColor, axisOpacity
+        showGridLines, gridLineOpacity, axisColor, axisOpacity
       });
     }
   }, [adjustedWidth, adjustedHeight, type,
-      domain, scale, format, tickValues,
+      domain, scale, format, ticks, tickValues,
       secondary, label, margin, tickDensity,
-      axisColor, axisOpacity]
+      showGridLines, gridLineOpacity, axisColor, axisOpacity]
   );
 
   return <g ref={ ref }/>;
@@ -35,9 +36,9 @@ export const AxisBottom = props => {
 
 const renderAxisBottom = ({ ref,
                     adjustedWidth, adjustedHeight, type,
-                    domain, scale, format, tickValues,
+                    domain, scale, format, ticks, tickValues,
                     secondary, label, margin, tickDensity,
-                    axisColor, axisOpacity }) => {
+                    showGridLines, gridLineOpacity, axisColor, axisOpacity }) => {
 
   const { left, top, bottom } = margin;
 
@@ -73,8 +74,14 @@ const renderAxisBottom = ({ ref,
   }
 
   const axisBottom = d3AxisBottom(scale)
-    .tickValues(tickValues)
     .tickFormat(format);
+
+  if (tickValues) {
+    axisBottom.tickValues(tickValues);
+  }
+  else if (ticks) {
+    axisBottom.ticks(ticks);
+  }
 
   const transition = d3transition().duration(1000);
 
@@ -142,4 +149,49 @@ const renderAxisBottom = ({ ref,
 				.attr("fill", "currentColor")
         .attr("font-size", "1rem")
         .text(d => d);
+
+    const show = (type === "linear") && showGridLines && Boolean(scale) && Boolean(domain.length);
+
+    const gridLines = group.selectAll("line.grid-line"),
+      numGridLines = gridLines.size(),
+      numTicks = show ? scale.ticks(ticks).length : 0;
+
+    const gridEnter = numGridLines && (numGridLines < numTicks) ?
+        scale(domain[1] * 1.5) : scale(domain[0]);
+
+    const gridExit = show ? (0 === domain[0] && 0 === domain[1]) ? 0 : scale(domain[1] * 1.5) : 0;
+
+    gridLines
+      .data(show ? scale.ticks(ticks) : [])
+      .join(
+        enter => enter.append("line")
+          .attr("class", "grid-line")
+          .attr("x1", gridEnter)
+          .attr("x2", gridEnter)
+          .attr("y1", 0)
+          .attr("y2", -adjustedHeight)
+          .attr("stroke", "currentColor")
+          .attr("stroke-opacity", gridLineOpacity)
+            .call(enter => enter
+              .transition(transition)
+                .attr("x1", d => scale(d) + 0.5)
+                .attr("x2", d => scale(d) + 0.5)
+            ),
+        update => update
+          .call(update => update
+            .attr("stroke", "currentColor")
+            .attr("stroke-opacity", gridLineOpacity)
+            .transition(transition)
+              .attr("y2", -adjustedHeight)
+              .attr("x1", d => scale(d) + 0.5)
+              .attr("x2", d => scale(d) + 0.5)
+          ),
+        exit => exit
+          .call(exit => exit
+            .transition(transition)
+              .attr("x1", gridExit)
+              .attr("x2", gridExit)
+            .remove()
+          )
+      );
 }
