@@ -162,7 +162,7 @@ export const BarGraph = props => {
       const adjustedWidth = Math.max(0, width - (Margin.left + Margin.right)),
         adjustedHeight = Math.max(0, height - (Margin.top + Margin.bottom));
 
-      const xdGetter = data => data.map(d => get(d, indexBy, null)).filter(d => strictNaN(d));
+      const xdGetter = data => data.map(d => get(d, indexBy, null));
       const XScale = getScale({ ...DefaultXScale, ...xScale, type: "band",
                                 getter: xdGetter, data,
                                 range: hori ? [adjustedHeight, 0] : [0, adjustedWidth],
