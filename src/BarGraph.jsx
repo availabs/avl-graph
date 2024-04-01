@@ -116,6 +116,7 @@ export const BarGraph = props => {
     colors,
     groupMode = "stacked",
     orientation = "vertical",
+    showAnimations = true,
     addons = []
   } = props;
 
@@ -358,6 +359,7 @@ export const BarGraph = props => {
                   margin={ Margin }
                   scale={ YScale }
                   domain={ yDomain }
+                  showAnimations={ showAnimations }
                   { ...axisBottom }/>
               }
               { !axisLeft ? null :
@@ -366,6 +368,7 @@ export const BarGraph = props => {
                   margin={ Margin }
                   scale={ XScale }
                   domain={ xDomain }
+                  showAnimations={ showAnimations }
                   { ...axisLeft }/>
               }
               { !axisRight ? null :
@@ -374,6 +377,7 @@ export const BarGraph = props => {
                   margin={ Margin }
                   scale={ XScale }
                   domain={ xDomain }
+                  showAnimations={ showAnimations }
                   { ...axisRight }/>
               }
             </g> :
@@ -384,6 +388,7 @@ export const BarGraph = props => {
                   margin={ Margin }
                   scale={ XScale }
                   domain={ xDomain }
+                  showAnimations={ showAnimations }
                   { ...axisBottom }/>
               }
               { !axisLeft ? null :
@@ -392,6 +397,7 @@ export const BarGraph = props => {
                   margin={ Margin }
                   scale={ YScale }
                   domain={ yDomain }
+                  showAnimations={ showAnimations }
                   { ...axisLeft }/>
               }
               { !axisRight ? null :
@@ -400,6 +406,7 @@ export const BarGraph = props => {
                   margin={ Margin }
                   scale={ YScale }
                   domain={ yDomain }
+                  showAnimations={ showAnimations }
                   { ...axisRight }/>
               }
             </g>
@@ -410,14 +417,16 @@ export const BarGraph = props => {
           { barData.current.map(({ id, ...rest }) =>
               <Bar key={ id } { ...rest }
                 svgHeight={ state.adjustedHeight }
-                onMouseMove={ onMouseMove }/>
+                onMouseMove={ onMouseMove }
+                showAnimations={ showAnimations }/>
             )
           }
           { !barData.current.length ? null :
             addons.map((AddOn, i) => (
               <AddOn key={ i } { ...state }
                 xScale={ XScale }
-                yScale={ YScale }/>
+                yScale={ YScale }
+                showAnimations={ showAnimations }/>
             ))
           }
         </g>
@@ -449,39 +458,65 @@ const Stack = React.memo(props => {
     x,
     color,
     onMouseMove,
-    Key, index, value, data, barValues
+    Key, index, value, data, barValues,
+    showAnimations
   } = props;
 
   const ref = React.useRef();
 
   React.useEffect(() => {
     if (state === "entering") {
-      d3select(ref.current)
+      const selection = d3select(ref.current)
         .attr("width", width)
         .attr("height", 0)
         .attr("x", x)
-        .attr("y", svgHeight)
-        .transition().duration(1000)
+        .attr("y", svgHeight);
+      if (showAnimations) {
+        selection.transition().duration(1000)
           .attr("height", height)
           .attr("y", y)
           .attr("fill", color);
+      }
+      else {
+        selection
+          .attr("height", height)
+          .attr("y", y)
+          .attr("fill", color);
+      }
     }
     else if (state === "exiting") {
-      d3select(ref.current)
-        .transition().duration(1000)
+      const selection = d3select(ref.current)
+      if (showAnimations) {
+        selection.transition().duration(1000)
           .attr("height", 0)
           .attr("y", svgHeight);
+      }
+      else {
+        selection
+          .attr("height", 0)
+          .attr("y", svgHeight);
+      }
     }
     else {
-      d3select(ref.current)
-        .transition().duration(1000)
+      const selection = d3select(ref.current)
+      if (showAnimations) {
+        selection.transition().duration(1000)
           .attr("height", height)
           .attr("x", x)
           .attr("y", y)
           .attr("width", width)
           .attr("fill", color);
+      }
+      else {
+        selection
+          .attr("height", height)
+          .attr("x", x)
+          .attr("y", y)
+          .attr("width", width)
+          .attr("fill", color);
+      }
     }
-  }, [ref, state, width, svgHeight, height, x, y, color]);
+  }, [ref, state, width, svgHeight, height, x, y, color, showAnimations]);
 
   const _onMouseMove = React.useCallback(e => {
     onMouseMove(e, { color, key: Key, index, value, data, barValues });
@@ -493,7 +528,7 @@ const Stack = React.memo(props => {
   )
 })
 
-const Bar = React.memo(({ stacks, left = 0, top = 0, state, ...props }) => {
+const Bar = React.memo(({ stacks, left = 0, top = 0, state, showAnimations, ...props }) => {
 
   const ref = React.useRef();
 
@@ -503,17 +538,22 @@ const Bar = React.memo(({ stacks, left = 0, top = 0, state, ...props }) => {
         .attr("transform", `translate(${ left } ${ top })`);
     }
     else {
-      d3select(ref.current)
-        .transition().duration(1000)
-        .attr("transform", `translate(${ left } ${ top })`);
+      const selection = d3select(ref.current);
+      if (showAnimations) {
+        selection.transition().duration(1000)
+          .attr("transform", `translate(${ left } ${ top })`);
+      }
+      else {
+        selection.attr("transform", `translate(${ left } ${ top })`);
+      }
     }
-  }, [ref, state, left, top]);
+  }, [ref, state, left, top, showAnimations]);
 
   return (
     <g className="avl-bar" ref={ ref }>
       { stacks.map(({ key, ...rest }, i) =>
           <Stack key={ key } Key={ key } state={ state }
-            { ...props } { ...rest }/>
+            { ...props } { ...rest } showAnimations={ showAnimations }/>
         )
       }
     </g>

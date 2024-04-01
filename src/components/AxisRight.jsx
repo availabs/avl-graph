@@ -8,7 +8,7 @@ import { axisRight as d3AxisRight } from "d3-axis"
 export const AxisRight = props => {
   const {
     adjustedWidth, adjustedHeight, showGridLines = true, gridLineOpacity = 0.25, axisColor = "currentColor", axisOpacity = 1,
-    domain, scale, format, type = "linear",
+    domain, scale, format, type = "linear", showAnimations = true,
     secondary, label, margin, ticks = 10, tickValues
   } = props;
 
@@ -16,7 +16,7 @@ export const AxisRight = props => {
 
   React.useEffect(() => {
     if (ref.current) {
-      renderAxisRight(ref.current,
+      renderAxisRight(ref.current, showAnimations,
         adjustedWidth, adjustedHeight,
         domain, scale, type, format,
         secondary, label, margin, ticks, tickValues, showGridLines, gridLineOpacity,
@@ -24,7 +24,7 @@ export const AxisRight = props => {
       );
     }
   }, [adjustedWidth, adjustedHeight, showGridLines,
-      domain, scale, type, format,
+      domain, scale, type, format, showAnimations,
       secondary, label, margin, ticks, tickValues,
       gridLineOpacity, axisColor, axisOpacity]
   );
@@ -32,7 +32,7 @@ export const AxisRight = props => {
   return <g ref={ ref }/>;
 }
 
-const renderAxisRight = (ref,
+const renderAxisRight = (ref, showAnimations,
                     adjustedWidth,
                     adjustedHeight,
                     domain, scale, type, format,
@@ -54,6 +54,10 @@ const renderAxisRight = (ref,
 
   const transition = d3transition().duration(1000);
 
+  const transitionWrapper = selection => {
+    return showAnimations ? selection.transition(transition) : selection;
+  }
+
   const animatedGroup = d3select(ref)
     .selectAll("g.animated-group")
     .data(["animated-group"])
@@ -65,12 +69,12 @@ const renderAxisRight = (ref,
         ),
       update => update
         .call(
-          update => update.transition(transition)
+          update => transitionWrapper(update)
             .style("transform", `translate(${ adjustedWidth + left }px, ${ top }px)`)
         ),
       exit => exit
         .call(exit =>
-          exit.transition(transition)
+          transitionWrapper(exit)
             .style("transform", `translate(${ adjustedWidth + left }px, ${ top }px)`)
           .remove()
         )
@@ -82,37 +86,36 @@ const renderAxisRight = (ref,
         enter => enter.append("g")
           .attr("class", "axis-group")
           .call(enter =>
-            enter
-              .style("transform", `translateY(${ adjustedHeight }px) scale(0, 0)`)
-              .transition(transition)
-                .style("transform", "translateY(0px) scale(1, 1)")
+            transitionWrapper(enter.style("transform", `translateY(${ adjustedHeight }px) scale(0, 0)`))
+              .style("transform", "translateY(0px) scale(1, 1)")
           ),
         update => update
           .call(update =>
-            update.transition(transition)
+            transitionWrapper(update)
               .style("transform", "translateY(0px) scale(1, 1)")
           ),
         exit => exit
           .call(exit =>
-            exit.transition(transition)
+            transitionWrapper(exit)
               .style("transform", `translateY(${ adjustedHeight }px) scale(0, 0)`)
             .remove()
           )
       );
 
-  group.selectAll("g.axis")
+  const gaxis = group.selectAll("g.axis")
     .data(domain.length ? ["axis-right"] : [])
     .join("g")
-      .attr("class", "axis axis-right")
-        .transition(transition)
-        .call(axisRight)
-        .call(g => g.selectAll(".tick line")
-          .attr("stroke", "currentColor")
-          .attr("stroke-opacity", gridLineOpacity)
-        )
-        .select(".domain")
-        .attr("stroke", axisColor)
-        .attr("opacity", axisOpacity);
+      .attr("class", "axis axis-right");
+
+  transitionWrapper(gaxis)
+    .call(axisRight)
+    .call(g => g.selectAll(".tick line")
+      .attr("stroke", "currentColor")
+      .attr("stroke-opacity", gridLineOpacity)
+    )
+    .select(".domain")
+    .attr("stroke", axisColor)
+    .attr("opacity", axisOpacity);
 
   group.selectAll("g.axis.axis-right .domain")
     .attr("stroke-dasharray", secondary ? "8 4" : null);
@@ -152,23 +155,22 @@ const renderAxisRight = (ref,
         .attr("y2", gridEnter)
         .attr("stroke", "currentColor")
         .attr("stroke-opacity", gridLineOpacity)
-          .call(enter => enter
-            .transition(transition)
+          .call(enter => transitionWrapper(enter)
               .attr("y1", d => scale(d) + 0.5)
               .attr("y2", d => scale(d) + 0.5)
           ),
       update => update
-        .call(update => update
-          .attr("stroke", "currentColor")
-          .attr("stroke-opacity", gridLineOpacity)
-          .transition(transition)
+        .call(update => transitionWrapper(
+            update
+            .attr("stroke", "currentColor")
+            .attr("stroke-opacity", gridLineOpacity)
+          )
             .attr("x2", -adjustedWidth)
             .attr("y1", d => scale(d) + 0.5)
             .attr("y2", d => scale(d) + 0.5)
         ),
       exit => exit
-        .call(exit => exit
-          .transition(transition)
+        .call(exit => transitionWrapper(exit)
             .attr("y1", gridExit)
             .attr("y2", gridExit)
           .remove()

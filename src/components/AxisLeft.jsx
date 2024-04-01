@@ -6,7 +6,7 @@ import { axisLeft as d3AxisLeft } from "d3-axis"
 
 export const AxisLeft = props => {
   const {
-    adjustedWidth, adjustedHeight, showGridLines = true,
+    adjustedWidth, adjustedHeight, showGridLines = true, showAnimations = true,
     gridLineOpacity = 0.25, axisColor = "currentColor", axisOpacity = 1,
     domain, scale, format, type = "linear",
     secondary, label, margin, ticks = 10, tickValues, tickDensity = 8
@@ -16,7 +16,7 @@ export const AxisLeft = props => {
 
   React.useEffect(() => {
     if (ref.current) {
-      renderAxisLeft(ref.current,
+      renderAxisLeft(ref.current, showAnimations,
         adjustedWidth, adjustedHeight,
         domain, scale, type, format,
         secondary, label, margin,
@@ -25,7 +25,7 @@ export const AxisLeft = props => {
       );
     }
   }, [adjustedWidth, adjustedHeight, showGridLines,
-      domain, scale, type, format,
+      domain, scale, type, format, showAnimations,
       secondary, label, margin, ticks, tickValues,
       gridLineOpacity, axisColor, axisOpacity, tickDensity]
   );
@@ -33,7 +33,7 @@ export const AxisLeft = props => {
   return <g ref={ ref }/>;
 }
 
-const renderAxisLeft = (ref,
+const renderAxisLeft = (ref, showAnimations,
                         adjustedWidth, adjustedHeight,
                         domain, scale, type, format,
                         secondary, label, margin,
@@ -85,6 +85,10 @@ const renderAxisLeft = (ref,
 
   const transition = d3transition().duration(1000);
 
+  const transitionWrapper = selection => {
+    return showAnimations ? selection.transition(transition) : selection;
+  }
+
   const animatedGroup = d3select(ref)
     .selectAll("g.animated-group")
     .data(["animated-group"])
@@ -96,12 +100,12 @@ const renderAxisLeft = (ref,
         ),
       update => update
         .call(
-          update => update.transition(transition)
+          update => transitionWrapper(update)
             .style("transform", `translate(${ left }px, ${ top }px)`)
         ),
       exit => exit
         .call(exit =>
-          exit.transition(transition)
+          transitionWrapper(exit)
             .style("transform", `translate(${ left }px, ${ top }px)`)
           .remove()
         )
@@ -113,30 +117,29 @@ const renderAxisLeft = (ref,
         enter => enter.append("g")
           .attr("class", "axis-group")
           .call(enter =>
-            enter
-              .style("transform", `translateY(${ adjustedHeight }px) scale(0, 0)`)
-              .transition(transition)
-                .style("transform", "translateY(0px) scale(1, 1)")
+            transitionWrapper(enter.style("transform", `translateY(${ adjustedHeight }px) scale(0, 0)`))
+              .style("transform", "translateY(0px) scale(1, 1)")
           ),
         update => update
           .call(update =>
-            update.transition(transition)
+            transitionWrapper(update)
               .style("transform", "translateY(0px) scale(1, 1)")
           ),
         exit => exit
           .call(exit =>
-            exit.transition(transition)
+            transitionWrapper(exit)
               .style("transform", `translateY(${ adjustedHeight }px) scale(0, 0)`)
             .remove()
           )
       );
 
-  group.selectAll("g.axis")
+  const gaxis = group.selectAll("g.axis")
     .data(domain.length ? ["axis-left"] : [])
     .join("g")
       .attr("class", "axis axis-left")
-        .classed("secondary", secondary)
-        .transition(transition)
+        .classed("secondary", secondary);
+
+  transitionWrapper(gaxis)
         .call(axisLeft)
         .call(g => g.selectAll(".tick line")
                     .attr("stroke", "currentColor")
@@ -180,23 +183,22 @@ const renderAxisLeft = (ref,
         .attr("y2", gridEnter)
         .attr("stroke", "currentColor")
         .attr("stroke-opacity", gridLineOpacity)
-          .call(enter => enter
-            .transition(transition)
+          .call(enter => transitionWrapper(enter)
               .attr("y1", d => scale(d) + 0.5)
               .attr("y2", d => scale(d) + 0.5)
           ),
       update => update
-        .call(update => update
-          .attr("stroke", "currentColor")
-          .attr("stroke-opacity", gridLineOpacity)
-          .transition(transition)
+        .call(update => transitionWrapper(
+            update
+            .attr("stroke", "currentColor")
+            .attr("stroke-opacity", gridLineOpacity)
+          )
             .attr("x2", adjustedWidth)
             .attr("y1", d => scale(d) + 0.5)
             .attr("y2", d => scale(d) + 0.5)
         ),
       exit => exit
-        .call(exit => exit
-          .transition(transition)
+        .call(exit => transitionWrapper(exit)
             .attr("y1", gridExit)
             .attr("y2", gridExit)
           .remove()

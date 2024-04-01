@@ -184,6 +184,7 @@ export const LineGraph = props => {
     padding = 0.5,
     strokeWidth = 1,
     shouldComponentUpdate = null,
+    showAnimations = true,
     colors
   } = props;
 
@@ -491,6 +492,7 @@ export const LineGraph = props => {
                 margin={ Margin }
                 scale={ XScale }
                 domain={ xDomain }
+                showAnimations={ showAnimations }
                 { ...axisBottom }/>
             }
             { !axisLeft ? null :
@@ -498,6 +500,7 @@ export const LineGraph = props => {
                 margin={ Margin }
                 scale={ YScale }
                 domain={ yDomain }
+                showAnimations={ showAnimations }
                 { ...axisLeft  }/>
             }
           </g>
@@ -508,13 +511,15 @@ export const LineGraph = props => {
           { lineData.current.map(({ id, ...rest }) => (
               <Line key={ id } { ...rest }
                 onMouseMove={ onMouseMove }
-                strokeWidth={ strokeWidth }/>
+                strokeWidth={ strokeWidth }
+                showAnimations={ showAnimations }/>
             ))
           }
           { secondaryData.current.map(({ id, ...rest }) => (
               <Line key={ id } { ...rest } secondary={ true }
                 onMouseMove={ onMouseMove }
-                strokeWidth={ strokeWidth }/>
+                strokeWidth={ strokeWidth }
+                showAnimations={ showAnimations }/>
             ))
           }
 
@@ -564,37 +569,51 @@ export const LineGraph = props => {
 }
 export default LineGraph;
 
-const Line = React.memo(({ line, baseLine, state, color, strokeWidth = 1, secondary = false }) => {
+const Line = React.memo(({ line, baseLine, state, color, strokeWidth = 1, secondary = false, showAnimations }) => {
 
   const ref = React.useRef();
 
   React.useEffect(() => {
     if (state === "entering") {
-      d3select(ref.current)
-        // .attr("opacity", 0)
+      const selection = d3select(ref.current)
         .attr("d", baseLine)
         .attr("stroke", color)
         .attr("stroke-dasharray", secondary ? "8 4" : null)
-        .attr("stroke-width", strokeWidth)
-        .transition().duration(1000)
-        // .attr("opacity", 1)
-        .attr("d", line);
+        .attr("stroke-width", strokeWidth);
+      if (showAnimations) {
+        selection.transition().duration(1000)
+          .attr("d", line);
+      }
+      else {
+        selection.attr("d", line);
+      }
     }
     else if (state === "exiting") {
-      d3select(ref.current)
-        .transition().duration(1000)
-        .attr("d", baseLine)
-        // .attr("opacity", 0);
+      const selection = d3select(ref.current);
+      if (showAnimations) {
+        selection.transition().duration(1000)
+          .attr("d", baseLine);
+      }
+      else {
+        selection.attr("d", baseLine);
+      }
     }
     else {
-      d3select(ref.current)
-        .transition().duration(1000)
-        // .attr("opacity", 1)
-        .attr("stroke", color)
-        .attr("stroke-width", strokeWidth)
-        .attr("d", line);
+      const selection = d3select(ref.current);
+      if (showAnimations) {
+        selection.transition().duration(1000)
+          .attr("stroke", color)
+          .attr("stroke-width", strokeWidth)
+          .attr("d", line);
+      }
+      else {
+        selection
+          .attr("stroke", color)
+          .attr("stroke-width", strokeWidth)
+          .attr("d", line);
+      }
     }
-  }, [ref, state, line, baseLine, color, secondary]);
+  }, [ref, state, line, baseLine, color, secondary, showAnimations]);
 
   return (
     <g>

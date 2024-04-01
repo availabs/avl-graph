@@ -452,6 +452,7 @@ export const GridGraph = props => {
                 scale={ xScale }
                 domain={ xDomain }
                 type="ordinal"
+                showAnimations={ showAnimations }
                 { ...axisBottom }/>
             }
             { !axisLeft ? null :
@@ -461,6 +462,7 @@ export const GridGraph = props => {
                 tickValues={ yTickValues }
                 domain={ yDomain }
                 type="ordinal"
+                showAnimations={ showAnimations }
                 { ...axisLeft }/>
             }
           </g>
