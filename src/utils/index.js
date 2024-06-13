@@ -37,7 +37,7 @@ for (const type in colorbrewer.schemeGroups) {
 }
 
 export { ColorRanges };
-//console.log("ColorRanges", ColorRanges);
+// console.log("ColorRanges", ColorRanges);
 
 export const getColorRange = (size, name, reverse=false) => {
   let range = get(ColorRanges, [size], [])
@@ -48,7 +48,7 @@ export const getColorRange = (size, name, reverse=false) => {
   return range
 }
 
-const DEFAULT_COLORS = getColorRange(12, "Set3");
+export const DEFAULT_COLORS = getColorRange(12, "Set3");
 
 export const getColorFunc = colors => {
   if (typeof colors === "function") {
@@ -108,7 +108,7 @@ export const getScale = options => {
     base = 10
   } = options;
 
-  if (!domain.length) {
+  if (!domain?.length) {
     domain = getter(data);
   }
 

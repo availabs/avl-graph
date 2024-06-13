@@ -6,7 +6,7 @@ import { axisBottom as d3AxisBottom } from "d3-axis"
 
 export const AxisBottom = props => {
   const {
-    adjustedWidth, adjustedHeight, type = "band",
+    adjustedWidth, adjustedHeight, type = "band", rotateLabels = false,
     domain, scale, format, ticks, tickValues,
     secondary, label, margin, tickDensity = 2,
     showGridLines = true, showAnimations = true,
@@ -18,7 +18,7 @@ export const AxisBottom = props => {
   React.useEffect(() => {
     if (ref.current) {
       renderAxisBottom({
-        ref: ref.current, showAnimations,
+        ref: ref.current, showAnimations, rotateLabels,
         adjustedWidth, adjustedHeight, type,
         domain, scale, format, ticks, tickValues,
         secondary, label, margin, tickDensity,
@@ -27,20 +27,22 @@ export const AxisBottom = props => {
     }
   }, [adjustedWidth, adjustedHeight, type, showAnimations,
       domain, scale, format, ticks, tickValues,
-      secondary, label, margin, tickDensity,
+      secondary, label, margin, tickDensity, rotateLabels,
       showGridLines, gridLineOpacity, axisColor, axisOpacity]
   );
 
   return <g ref={ ref }/>;
 }
 
-const renderAxisBottom = ({ ref, showAnimations,
+const renderAxisBottom = ({ ref, showAnimations, rotateLabels,
                     adjustedWidth, adjustedHeight, type,
                     domain, scale, format, ticks, tickValues,
                     secondary, label, margin, tickDensity,
                     showGridLines, gridLineOpacity, axisColor, axisOpacity }) => {
 
   const { left, top, bottom } = margin;
+
+  tickDensity = tickDensity || 100;
 
   if (!tickValues && (type === "band")) {
     const ticks = Math.ceil(adjustedWidth / 100 * tickDensity),
@@ -148,11 +150,23 @@ const renderAxisBottom = ({ ref, showAnimations,
     .data(domain.length && Boolean(label) ? [label] : [])
       .join("text")
         .attr("class", "axis-label axis-label-bottom")
-        .style("transform", `translate(${ adjustedWidth * 0.5 }px, ${ bottom - 9 }px)`)
+        .style("transform", `translate(${ adjustedWidth * 0.5 }px, calc(${ bottom }px - 0.5rem))`)
         .attr("text-anchor", "middle")
 				.attr("fill", "currentColor")
         .attr("font-size", "1rem")
+        .attr("font-weight", "bold")
         .text(d => d);
+
+    if (rotateLabels) {
+      group.selectAll(".tick text")
+        .attr("text-anchor", "start")
+        .style("transform", `translate(0.5rem, 0.1rem) rotate(45deg)`)
+    }
+    else {
+      group.selectAll(".tick text")
+        .attr("text-anchor", null)
+        .style("transform", null)
+    }
 
     const show = (type === "linear") && showGridLines && Boolean(scale) && Boolean(domain.length);
 

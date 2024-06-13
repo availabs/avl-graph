@@ -159,6 +159,7 @@ const renderAxisLeft = (ref, showAnimations,
       .attr("text-anchor", "middle")
       .attr("fill", "currentColor")
       .attr("font-size", "1rem")
+      .attr("font-weight", "bold")
       .text(d => d);
 
   const show = (type === "linear") && showGridLines && scale && domain.length;
